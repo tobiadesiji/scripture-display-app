@@ -40,8 +40,4 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-<<<<<<< HEAD
           labels: ${{ steps.meta.outputs.labels }}
-=======
-          labels: ${{ steps.meta.outputs.labels }}
->>>>>>> eb89e12 (Add Docker support and publish workflow)
