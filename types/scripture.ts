@@ -5,6 +5,13 @@ export type Verse = {
   text: string;
 };
 
+export type BookMeta = {
+  name: string;
+  slug: string;
+  aliases: string[];
+  chapters?: number;
+};
+
 export type BibleVersion = "KJV" | "NLT";
 
 export type ParsedReference = {
