@@ -2,9 +2,16 @@ import type { OutputState } from "@/types/scripture";
 
 type Props = {
   state: OutputState;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+  sessionId: string;
 };
 
-export default function DisplayCanvas({ state }: Props) {
+export default function DisplayCanvas({
+  state,
+  isFullscreen,
+  onToggleFullscreen,
+}: Props) {
   const backgroundColor =
     state.mode === "black"
       ? "#000000"
@@ -12,14 +19,36 @@ export default function DisplayCanvas({ state }: Props) {
         ? "#ffffff"
         : state.theme.backgroundColor;
 
-  const textColor = state.mode === "white" ? "#000000" : state.theme.textColor;
+  const textColor =
+    state.mode === "white" ? "#000000" : state.theme.textColor;
+
+  const chipStyle = {
+    borderColor: textColor,
+    color: textColor,
+    backgroundColor:
+      textColor === "#000000"
+        ? "rgba(0,0,0,0.05)"
+        : "rgba(255,255,255,0.08)",
+  };
+
+  const fullscreenButton = (
+    <button
+      type="button"
+      onClick={onToggleFullscreen}
+    className="absolute left-4 top-4 z-20 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] opacity-85 transition hover:opacity-100"
+    >
+      {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+    </button>
+  );
 
   if (state.mode !== "passage") {
     return (
       <div
         className="relative h-screen w-screen overflow-hidden"
         style={{ backgroundColor, color: textColor }}
-      />
+      >
+        {fullscreenButton}
+      </div>
     );
   }
 
@@ -30,19 +59,14 @@ export default function DisplayCanvas({ state }: Props) {
       className="relative h-screen w-screen overflow-hidden"
       style={{ backgroundColor, color: textColor }}
     >
+      {fullscreenButton}
+
       <div className="h-full w-full px-10 pb-8 pt-8">
         <div className="mx-auto grid h-full max-w-6xl grid-rows-[auto_1fr_auto] gap-6">
           <div className="flex justify-end">
             <div
               className="rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] opacity-85"
-              style={{
-                borderColor: textColor,
-                color: textColor,
-                backgroundColor:
-                  textColor === "#000000"
-                    ? "rgba(0,0,0,0.05)"
-                    : "rgba(255,255,255,0.08)"
-              }}
+              style={chipStyle}
             >
               {state.bundle.translation}
             </div>
@@ -54,13 +78,18 @@ export default function DisplayCanvas({ state }: Props) {
               style={{
                 textAlign: state.theme.textAlign,
                 lineHeight: state.theme.lineHeight,
-                fontSize: `${state.theme.fontSize}px`
+                fontSize: `${state.theme.fontSize}px`,
               }}
             >
               <div className="space-y-4">
                 {currentPage.map((verse) => (
-                  <p key={`${verse.chapter}-${verse.verse}`} className="font-medium">
-                    <sup className="mr-2 text-[0.55em] opacity-70">{verse.verse}</sup>
+                  <p
+                    key={`${verse.chapter}-${verse.verse}`}
+                    className="font-medium"
+                  >
+                    <sup className="mr-2 text-[0.55em] opacity-70">
+                      {verse.verse}
+                    </sup>
                     {verse.text}
                   </p>
                 ))}

@@ -12,7 +12,12 @@ export type BookMeta = {
   chapters?: number;
 };
 
-export type BibleVersion = "KJV" | "NLT";
+export type BibleVersion =
+  | "KJV"
+  | "NLT"
+  | "NIV"
+  | "AMP"
+  | "MSG";
 
 export type ParsedReference = {
   book: string;

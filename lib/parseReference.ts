@@ -25,7 +25,7 @@ type AliasEntry = {
 };
 
 const EXTRA_ALIASES: Record<string, string[]> = {
-  Genesis: ["ge", "gn"],
+  Genesis: ["gen", "ge", "gn"],
   Exodus: ["exo"],
   Leviticus: ["le", "lv"],
   Numbers: ["nm", "nb"],
@@ -42,7 +42,7 @@ const EXTRA_ALIASES: Record<string, string[]> = {
   Ezra: ["ezr"],
   Nehemiah: ["ne"],
   Esther: ["est"],
-  Psalm: ["psm"],
+  Psalm: ["ps", "psa", "psalm", "psalms", "psm"],
   Proverbs: ["proverb", "pro", "prv"],
   Ecclesiastes: ["eccles", "ecc"],
   "Song of Solomon": ["song of songs", "song", "songs", "sos", "canticles"],
@@ -156,14 +156,17 @@ export function parseReferenceDetailed(rawInput: string): ParseReferenceResult {
   };
 }
 
-function findBookMatch(input: string): { book: string; slug: string; remainder: string } | null {
+function findBookMatch(
+  input: string,
+): { book: string; slug: string; remainder: string } | null {
   const exact = matchBookAlias(input);
   if (exact) {
     return exact;
   }
 
   const digitIndex = input.search(/\d/);
-  const probableBookPart = digitIndex === -1 ? input : input.slice(0, digitIndex).trim();
+  const probableBookPart =
+    digitIndex === -1 ? input : input.slice(0, digitIndex).trim();
 
   if (!probableBookPart || probableBookPart.length < MIN_FUZZY_ALIAS_LENGTH) {
     return null;
@@ -181,7 +184,9 @@ function findBookMatch(input: string): { book: string; slug: string; remainder: 
   };
 }
 
-function matchBookAlias(input: string): { book: string; slug: string; remainder: string } | null {
+function matchBookAlias(
+  input: string,
+): { book: string; slug: string; remainder: string } | null {
   for (const entry of ALIASES) {
     if (!input.startsWith(entry.alias)) {
       continue;
@@ -311,7 +316,8 @@ function parseTail(
     ok: false,
     error: {
       code: "INVALID_REFERENCE_FORMAT",
-      message: "Reference format not recognised. Try John 3, John 3:16, Gen 1 1, or 1 Cor 13,4.",
+      message:
+        "Reference format not recognised. Try John 3, John 3:16, Gen 1 1, or 1 Cor 13,4.",
     },
   };
 }
@@ -321,7 +327,8 @@ function invalidReference() {
     ok: false as const,
     error: {
       code: "INVALID_CHAPTER_OR_VERSE" as const,
-      message: "Chapter and verse values must be positive numbers and ranges must move forward.",
+      message:
+        "Chapter and verse values must be positive numbers and ranges must move forward.",
     },
   };
 }
@@ -376,7 +383,9 @@ function findClosestAlias(input: string): AliasEntry | null {
 
     const distance = levenshtein(input, entry.alias);
     const maxDistance =
-      entry.alias.length <= 6 ? MAX_FUZZY_DISTANCE_SHORT : MAX_FUZZY_DISTANCE_LONG;
+      entry.alias.length <= 6
+        ? MAX_FUZZY_DISTANCE_SHORT
+        : MAX_FUZZY_DISTANCE_LONG;
 
     if (distance > maxDistance) {
       continue;

@@ -4,27 +4,91 @@ export const OUTPUT_CHANNEL = "scripture-output";
 export const OUTPUT_STORAGE_KEY = "scripture-output-state";
 export const OUTPUT_VIEWPORT_STORAGE_KEY = "scripture-output-viewport";
 
-export function createOutputChannel() {
-  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return null;
-  return new BroadcastChannel(OUTPUT_CHANNEL);
+export type OutputViewport = { width: number; height: number };
+
+export type PresentationCommand = {
+  id: string;
+  type: "toggle-fullscreen";
+  source?: "control" | "display" | "remote";
+  createdAt: number;
+};
+
+type Snapshot = {
+  state: OutputState | null;
+  viewport: OutputViewport | null;
+  lastCommand: PresentationCommand | null;
+};
+
+type Event =
+  | { type: "state"; payload: OutputState }
+  | { type: "viewport"; payload: OutputViewport }
+  | { type: "command"; payload: PresentationCommand }
+  | { type: "snapshot"; payload: Snapshot }
+  | { type: "ping"; payload: { time: number } };
+
+function getScopedChannelName(sessionId: string) {
+  return `${OUTPUT_CHANNEL}:${sessionId}`;
 }
 
-export function publishOutputState(state: OutputState) {
+function getScopedStateStorageKey(sessionId: string) {
+  return `${OUTPUT_STORAGE_KEY}:${sessionId}`;
+}
+
+function getScopedViewportStorageKey(sessionId: string) {
+  return `${OUTPUT_VIEWPORT_STORAGE_KEY}:${sessionId}`;
+}
+
+export function createOutputChannel(sessionId: string) {
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
+    return null;
+  }
+
+  return new BroadcastChannel(getScopedChannelName(sessionId));
+}
+
+async function postPresentationUpdate(
+  payload: {
+    state?: OutputState;
+    viewport?: OutputViewport;
+    command?: PresentationCommand;
+  },
+  sessionId: string,
+) {
   if (typeof window === "undefined") return;
 
-  localStorage.setItem(OUTPUT_STORAGE_KEY, JSON.stringify(state));
+  try {
+    await fetch("/api/presentation/state", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sessionId,
+        ...payload,
+      }),
+      keepalive: true,
+    });
+  } catch {}
+}
 
-  const channel = createOutputChannel();
+export function publishOutputState(state: OutputState, sessionId: string) {
+  if (typeof window === "undefined") return;
+
+  localStorage.setItem(getScopedStateStorageKey(sessionId), JSON.stringify(state));
+
+  const channel = createOutputChannel(sessionId);
   if (channel) {
     channel.postMessage({ type: "state", payload: state });
     channel.close();
   }
+
+  void postPresentationUpdate({ state }, sessionId);
 }
 
-export function readStoredOutputState(): OutputState | null {
+export function readStoredOutputState(sessionId: string): OutputState | null {
   if (typeof window === "undefined") return null;
 
-  const raw = localStorage.getItem(OUTPUT_STORAGE_KEY);
+  const raw = localStorage.getItem(getScopedStateStorageKey(sessionId));
   if (!raw) return null;
 
   try {
@@ -34,38 +98,100 @@ export function readStoredOutputState(): OutputState | null {
   }
 }
 
-export function publishOutputViewport(viewport: { width: number; height: number }) {
+export function publishOutputViewport(
+  viewport: OutputViewport,
+  sessionId: string,
+) {
   if (typeof window === "undefined") return;
 
-  localStorage.setItem(OUTPUT_VIEWPORT_STORAGE_KEY, JSON.stringify(viewport));
+  localStorage.setItem(
+    getScopedViewportStorageKey(sessionId),
+    JSON.stringify(viewport),
+  );
 
-  const channel = createOutputChannel();
+  const channel = createOutputChannel(sessionId);
   if (channel) {
     channel.postMessage({ type: "viewport", payload: viewport });
     channel.close();
   }
+
+  void postPresentationUpdate({ viewport }, sessionId);
 }
 
-export function readStoredOutputViewport(): { width: number; height: number } | null {
+export function readStoredOutputViewport(sessionId: string): OutputViewport | null {
   if (typeof window === "undefined") return null;
 
-  const raw = localStorage.getItem(OUTPUT_VIEWPORT_STORAGE_KEY);
+  const raw = localStorage.getItem(getScopedViewportStorageKey(sessionId));
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as { width: number; height: number };
+    return JSON.parse(raw) as OutputViewport;
   } catch {
     return null;
   }
 }
 
-export function subscribeToOutputState(callback: (state: OutputState) => void) {
+export function publishPresentationCommand(
+  type: PresentationCommand["type"],
+  source: PresentationCommand["source"] = "control",
+  sessionId: string,
+) {
+  if (typeof window === "undefined") return;
+
+  const command: PresentationCommand = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    type,
+    source,
+    createdAt: Date.now(),
+  };
+
+  const channel = createOutputChannel(sessionId);
+  if (channel) {
+    channel.postMessage({ type: "command", payload: command });
+    channel.close();
+  }
+
+  void postPresentationUpdate({ command }, sessionId);
+}
+
+function subscribeToServerEvents(
+  sessionId: string,
+  listener: (event: Event) => void,
+) {
+  if (typeof window === "undefined" || typeof EventSource === "undefined") {
+    return () => {};
+  }
+
+  const url = new URL("/api/presentation/events", window.location.origin);
+  url.searchParams.set("sessionId", sessionId);
+
+  const source = new EventSource(url.toString());
+
+  source.onmessage = (event) => {
+    try {
+      listener(JSON.parse(event.data) as Event);
+    } catch {}
+  };
+
+  source.onerror = () => {};
+
+  return () => {
+    source.close();
+  };
+}
+
+export function subscribeToOutputState(
+  sessionId: string,
+  callback: (state: OutputState) => void,
+) {
   if (typeof window === "undefined") return () => {};
 
-  const channel = createOutputChannel();
+  const stateKey = getScopedStateStorageKey(sessionId);
+  const channel = createOutputChannel(sessionId);
 
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== OUTPUT_STORAGE_KEY || !event.newValue) return;
+    if (event.key !== stateKey || !event.newValue) return;
+
     try {
       callback(JSON.parse(event.newValue) as OutputState);
     } catch {}
@@ -77,6 +203,13 @@ export function subscribeToOutputState(callback: (state: OutputState) => void) {
     }
   };
 
+  const stopServerSubscription = subscribeToServerEvents(sessionId, (event) => {
+    if (event.type === "state") callback(event.payload);
+    if (event.type === "snapshot" && event.payload.state) {
+      callback(event.payload.state);
+    }
+  });
+
   window.addEventListener("storage", onStorage);
   channel?.addEventListener("message", onChannel);
 
@@ -84,28 +217,39 @@ export function subscribeToOutputState(callback: (state: OutputState) => void) {
     window.removeEventListener("storage", onStorage);
     channel?.removeEventListener("message", onChannel);
     channel?.close();
+    stopServerSubscription();
   };
 }
 
 export function subscribeToOutputViewport(
-  callback: (viewport: { width: number; height: number }) => void
+  sessionId: string,
+  callback: (viewport: OutputViewport) => void,
 ) {
   if (typeof window === "undefined") return () => {};
 
-  const channel = createOutputChannel();
+  const viewportKey = getScopedViewportStorageKey(sessionId);
+  const channel = createOutputChannel(sessionId);
 
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== OUTPUT_VIEWPORT_STORAGE_KEY || !event.newValue) return;
+    if (event.key !== viewportKey || !event.newValue) return;
+
     try {
-      callback(JSON.parse(event.newValue) as { width: number; height: number });
+      callback(JSON.parse(event.newValue) as OutputViewport);
     } catch {}
   };
 
   const onChannel = (event: MessageEvent) => {
     if (event.data?.type === "viewport") {
-      callback(event.data.payload as { width: number; height: number });
+      callback(event.data.payload as OutputViewport);
     }
   };
+
+  const stopServerSubscription = subscribeToServerEvents(sessionId, (event) => {
+    if (event.type === "viewport") callback(event.payload);
+    if (event.type === "snapshot" && event.payload.viewport) {
+      callback(event.payload.viewport);
+    }
+  });
 
   window.addEventListener("storage", onStorage);
   channel?.addEventListener("message", onChannel);
@@ -114,5 +258,36 @@ export function subscribeToOutputViewport(
     window.removeEventListener("storage", onStorage);
     channel?.removeEventListener("message", onChannel);
     channel?.close();
+    stopServerSubscription();
+  };
+}
+
+export function subscribeToPresentationCommands(
+  sessionId: string,
+  callback: (command: PresentationCommand) => void,
+) {
+  if (typeof window === "undefined") return () => {};
+
+  const channel = createOutputChannel(sessionId);
+
+  const onChannel = (event: MessageEvent) => {
+    if (event.data?.type === "command") {
+      callback(event.data.payload as PresentationCommand);
+    }
+  };
+
+  const stopServerSubscription = subscribeToServerEvents(sessionId, (event) => {
+    if (event.type === "command") callback(event.payload);
+    if (event.type === "snapshot" && event.payload.lastCommand) {
+      callback(event.payload.lastCommand);
+    }
+  });
+
+  channel?.addEventListener("message", onChannel);
+
+  return () => {
+    channel?.removeEventListener("message", onChannel);
+    channel?.close();
+    stopServerSubscription();
   };
 }

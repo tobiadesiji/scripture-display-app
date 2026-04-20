@@ -1,9 +1,5 @@
 import type { Verse } from "@/types/scripture";
 
-function normaliseWhitespace(input: string): string {
-  return input.replace(/\s+/g, " ").trim();
-}
-
 function decodeEntities(input: string): string {
   if (typeof window !== "undefined") {
     const textarea = document.createElement("textarea");
@@ -20,91 +16,95 @@ function decodeEntities(input: string): string {
     .replace(/&gt;/g, ">");
 }
 
-function stripHtml(input: string): string {
-  return decodeEntities(input.replace(/<[^>]+>/g, " "));
+function normaliseWhitespace(input: string): string {
+  return input.replace(/\s+/g, " ").trim();
 }
 
-function removeApiHeader(input: string): string {
-  return input.replace(/^\s*\d*\s*NLT\s*API\s*/i, "").trim();
+function stripHtml(input: string): string {
+  return decodeEntities(
+    input
+      .replace(/<br\s*\/?>/gi, " ")
+      .replace(/<\/p>/gi, " ")
+      .replace(/<\/div>/gi, " ")
+      .replace(/<\/h\d>/gi, " ")
+      .replace(/<[^>]+>/g, " "),
+  );
 }
 
 function removeFootnotes(input: string): string {
   let text = input;
 
-  // Remove only the specific inline footnote sentence itself,
-  // not everything after it.
-  text = text.replace(
-    /\*\s*\d+:\d+\s+Or\s+[^.?!]+[.?!]?/gi,
-    " "
-  );
-
-  // Remove bracket notes
   text = text.replace(/\[[^\]]*]/g, " ");
-
-  // Remove any remaining standalone asterisks
   text = text.replace(/\*/g, " ");
 
   return text;
 }
 
-function splitIntoVerseChunks(input: string): Array<{ verse: number; text: string }> {
-  const matches = Array.from(input.matchAll(/(?:^|\s)(\d+)\s/g));
+function cleanVerseHtml(input: string): string {
+  let text = input;
 
-  if (matches.length === 0) {
-    return [];
-  }
+  // remove headings and chapter labels inside verse block
+  text = text.replace(/<h2[^>]*>[\s\S]*?<\/h2>/gi, " ");
+  text = text.replace(/<h3[^>]*>[\s\S]*?<\/h3>/gi, " ");
 
-  const chunks: Array<{ verse: number; text: string }> = [];
+  // remove NLT inline translation note spans completely
+  text = text.replace(/<span class="tn"[^>]*>[\s\S]*?<\/span>/gi, " ");
+  text = text.replace(/<a class="a-tn"[^>]*>[\s\S]*?<\/a>/gi, " ");
 
-  for (let i = 0; i < matches.length; i++) {
-    const current = matches[i];
-    const next = matches[i + 1];
+  // remove verse number span so it doesn’t get duplicated in text
+  text = text.replace(/<span class="vn"[^>]*>\d+<\/span>/gi, " ");
 
-    const verseNumber = Number(current[1]);
-    const start = (current.index ?? 0) + current[0].length;
-    const end = next ? (next.index ?? input.length) : input.length;
+  text = removeFootnotes(text);
+  text = stripHtml(text);
 
-    const verseText = normaliseWhitespace(input.slice(start, end));
-
-    if (!Number.isInteger(verseNumber) || !verseText) continue;
-
-    chunks.push({
-      verse: verseNumber,
-      text: verseText
-    });
-  }
-
-  return chunks;
+  return normaliseWhitespace(text);
 }
 
 export function cleanNltHtmlToVerses(input: string, fallbackChapter: number): Verse[] {
-  const cleaned = normaliseWhitespace(
-    removeFootnotes(
-      removeApiHeader(
-        stripHtml(input)
-      )
-    )
-  );
+  const verses: Verse[] = [];
 
-  const chunks = splitIntoVerseChunks(cleaned);
+  const verseBlockPattern =
+    /<verse_export\b[^>]*\bch="(\d+)"[^>]*\bvn="(\d+)"[^>]*>([\s\S]*?)<\/verse_export>/gi;
 
-  if (chunks.length > 0) {
-    return chunks
-      .map((chunk) => ({
-        chapter: fallbackChapter,
-        verse: chunk.verse,
-        text: chunk.text
-      }))
-      .sort((a, b) => a.verse - b.verse);
+  for (const match of input.matchAll(verseBlockPattern)) {
+    const chapter = Number.parseInt(match[1], 10) || fallbackChapter;
+    const verse = Number.parseInt(match[2], 10);
+    const innerHtml = match[3] ?? "";
+    const text = cleanVerseHtml(innerHtml);
+
+    if (!Number.isInteger(verse) || !text) {
+      continue;
+    }
+
+    verses.push({
+      chapter,
+      verse,
+      text,
+    });
   }
 
-  return cleaned
+  if (verses.length > 0) {
+    const deduped = new Map<number, Verse>();
+
+    for (const verse of verses) {
+      if (!deduped.has(verse.verse)) {
+        deduped.set(verse.verse, verse);
+      }
+    }
+
+    return Array.from(deduped.values()).sort((a, b) => a.verse - b.verse);
+  }
+
+  // fallback if verse_export blocks are missing
+  const fallbackText = normaliseWhitespace(stripHtml(removeFootnotes(input)));
+
+  return fallbackText
     ? [
         {
           chapter: fallbackChapter,
           verse: 1,
-          text: cleaned
-        }
+          text: fallbackText,
+        },
       ]
     : [];
 }
