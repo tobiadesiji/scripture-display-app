@@ -1,110 +1,78 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import DisplayCanvas from "./DisplayCanvas";
 import {
-  publishOutputViewport,
   readStoredOutputState,
   subscribeToOutputState,
   subscribeToPresentationCommands,
 } from "@/lib/syncOutput";
-import { ensureSessionInLocation } from "@/lib/session";
-import type { OutputState, ThemeSettings } from "@/types/scripture";
+import type { OutputState } from "@/types/scripture";
 
-const DEFAULT_THEME: ThemeSettings = {
-  fontSize: 54,
-  textAlign: "center",
-  textColor: "#ffffff",
-  backgroundColor: "#000000",
-  lineHeight: 1.5,
-  showReference: true,
+type Props = {
+  sessionId: string;
 };
 
-const DEFAULT_STATE: OutputState = {
-  mode: "blank",
-  theme: DEFAULT_THEME,
-};
-
-export default function DisplayClient() {
-  const [state, setState] = useState<OutputState>(DEFAULT_STATE);
+export default function DisplayClient({ sessionId }: Props) {
+  const [state, setState] = useState<OutputState | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [sessionId, setSessionId] = useState("");
-  const processed = useRef(new Set<string>());
 
   useEffect(() => {
-    const safeSession = ensureSessionInLocation();
-    setSessionId(safeSession);
-  }, []);
+    if (!sessionId) return;
 
-  useEffect(() => {
-    const publishSize = () =>
-      publishOutputViewport(
-        {
-          width: window.innerWidth,
-          height: window.innerHeight,
-        },
-        sessionId,
-      );
-
-    const onFs = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-      publishSize();
-    };
-
-    publishSize();
-    onFs();
-
-    window.addEventListener("resize", publishSize);
-    document.addEventListener("fullscreenchange", onFs);
-
-    return () => {
-      window.removeEventListener("resize", publishSize);
-      document.removeEventListener("fullscreenchange", onFs);
-    };
-  }, [sessionId]);
-
-  useEffect(() => {
     const stored = readStoredOutputState(sessionId);
     if (stored) {
       setState(stored);
     }
 
-    return subscribeToOutputState(sessionId, setState);
+    return subscribeToOutputState(sessionId, (nextState) => {
+      setState(nextState);
+    });
   }, [sessionId]);
 
   useEffect(() => {
-    const toggle = async () => {
+    if (!sessionId) return;
+
+    return subscribeToPresentationCommands(sessionId, async (command) => {
+      if (command.type !== "toggle-fullscreen") return;
+
       try {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-        } else {
+        if (!document.fullscreenElement) {
           await document.documentElement.requestFullscreen();
+        } else {
+          await document.exitFullscreen();
         }
       } catch {}
-    };
-
-    return subscribeToPresentationCommands(sessionId, (command) => {
-      if (processed.current.has(command.id)) return;
-      processed.current.add(command.id);
-
-      if (command.type === "toggle-fullscreen") {
-        void toggle();
-      }
     });
   }, [sessionId]);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+    };
+  }, []);
+
+  const handleToggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {}
+  };
 
   return (
     <DisplayCanvas
       state={state}
       isFullscreen={isFullscreen}
+      onToggleFullscreen={handleToggleFullscreen}
       sessionId={sessionId}
-      onToggleFullscreen={() => {
-        if (document.fullscreenElement) {
-          void document.exitFullscreen();
-        } else {
-          void document.documentElement.requestFullscreen();
-        }
-      }}
     />
   );
 }

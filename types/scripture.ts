@@ -12,12 +12,7 @@ export type BookMeta = {
   chapters?: number;
 };
 
-export type BibleVersion =
-  | "KJV"
-  | "NLT"
-  | "NIV"
-  | "AMP"
-  | "MSG";
+export type BibleVersion = "KJV" | "NLT" | "NIV" | "AMP" | "MSG";
 
 export type ParsedReference = {
   book: string;
@@ -35,6 +30,16 @@ export type PassageBundle = {
   currentPageIndex: number;
 };
 
+export type ScriptureFontFamily =
+  | "inter"
+  | "montserrat"
+  | "merriweather"
+  | "source-sans";
+
+export type ScriptureTextShadow = "none" | "soft" | "medium" | "strong";
+
+export type ScriptureTextOutline = "none" | "thin" | "medium";
+
 export type ThemeSettings = {
   fontSize: number;
   textAlign: "left" | "center";
@@ -42,6 +47,9 @@ export type ThemeSettings = {
   backgroundColor: string;
   lineHeight: number;
   showReference: boolean;
+  fontFamily: ScriptureFontFamily;
+  textShadow: ScriptureTextShadow;
+  textOutline: ScriptureTextOutline;
 };
 
 export type OutputState =

@@ -1,4 +1,4 @@
-import type { BibleVersion, ParsedReference, Verse } from "@/types/scripture";
+import type { BibleVersion, ParsedReference } from "@/types/scripture";
 import { loadBible } from "./loadBible";
 import { fetchNltVerses } from "./nltApi";
 
@@ -17,6 +17,7 @@ export async function getAdjacentVerseReference(
 ): Promise<AdjacentResult | null> {
   if (version === "KJV") {
     const verses = await loadBible();
+
     const bookVerses = verses
       .filter((verse) => (verse.book ?? "").toLowerCase() === parsed.book.toLowerCase())
       .sort((a, b) => {
@@ -25,18 +26,21 @@ export async function getAdjacentVerseReference(
       });
 
     const targetVerse = parsed.startVerse ?? 1;
+
     const index = bookVerses.findIndex(
       (verse) => verse.chapter === parsed.chapter && verse.verse === targetVerse
     );
 
     if (index === -1) return null;
 
-    const nextIndex = direction === "prev" ? index - 1 : index + 1;
-    if (nextIndex < 0 || nextIndex >= bookVerses.length) return null;
+    const adjacentIndex = direction === "prev" ? index - 1 : index + 1;
+    if (adjacentIndex < 0 || adjacentIndex >= bookVerses.length) return null;
 
-    const nextVerse = bookVerses[nextIndex];
+    const adjacentVerse = bookVerses[adjacentIndex];
+    if (!adjacentVerse) return null;
+
     return {
-      reference: formatReference(parsed.book, nextVerse.chapter, nextVerse.verse)
+      reference: formatReference(parsed.book, adjacentVerse.chapter, adjacentVerse.verse),
     };
   }
 
@@ -45,7 +49,7 @@ export async function getAdjacentVerseReference(
   if (direction === "prev") {
     if (currentVerse > 1) {
       return {
-        reference: formatReference(parsed.book, parsed.chapter, currentVerse - 1)
+        reference: formatReference(parsed.book, parsed.chapter, currentVerse - 1),
       };
     }
 
@@ -53,30 +57,39 @@ export async function getAdjacentVerseReference(
 
     const previousChapter = parsed.chapter - 1;
     const previousChapterReference = `${parsed.book} ${previousChapter}`;
-    const previousChapterVerses = await fetchNltVerses(previousChapterReference, {
-      ...parsed,
-      chapter: previousChapter,
-      startVerse: undefined,
-      endVerse: undefined
-    });
+
+    const previousChapterVerses = await fetchNltVerses(
+      version,
+      previousChapterReference,
+      {
+        ...parsed,
+        chapter: previousChapter,
+      }
+    );
 
     if (previousChapterVerses.length === 0) return null;
 
     const lastVerse = previousChapterVerses[previousChapterVerses.length - 1];
+    if (!lastVerse) return null;
+
     return {
-      reference: formatReference(parsed.book, previousChapter, lastVerse.verse)
+      reference: formatReference(parsed.book, previousChapter, lastVerse.verse),
     };
   }
 
   const nextVerseReference = formatReference(parsed.book, parsed.chapter, currentVerse + 1);
 
   try {
-    const nextVerseResult = await fetchNltVerses(nextVerseReference, {
-      ...parsed,
-      chapter: parsed.chapter,
-      startVerse: currentVerse + 1,
-      endVerse: currentVerse + 1
-    });
+    const nextVerseResult = await fetchNltVerses(
+      version,
+      nextVerseReference,
+      {
+        ...parsed,
+        chapter: parsed.chapter,
+        startVerse: currentVerse + 1,
+        endVerse: currentVerse + 1,
+      }
+    );
 
     if (nextVerseResult.length > 0) {
       return { reference: nextVerseReference };
@@ -87,12 +100,16 @@ export async function getAdjacentVerseReference(
   const nextChapterFirstVerseReference = formatReference(parsed.book, nextChapter, 1);
 
   try {
-    const nextChapterResult = await fetchNltVerses(nextChapterFirstVerseReference, {
-      ...parsed,
-      chapter: nextChapter,
-      startVerse: 1,
-      endVerse: 1
-    });
+    const nextChapterResult = await fetchNltVerses(
+      version,
+      nextChapterFirstVerseReference,
+      {
+        ...parsed,
+        chapter: nextChapter,
+        startVerse: 1,
+        endVerse: 1,
+      }
+    );
 
     if (nextChapterResult.length > 0) {
       return { reference: nextChapterFirstVerseReference };

@@ -1,195 +1,57 @@
-# Scripture Web App — KJV Single File Version
+# Scripture Web App — Professional Media Bible Controller
 
-A browser-based scripture projection app for church use.
+A high-performance, browser-based scripture projection application designed for church services, Zoom broadcasts, and live streaming.
 
-## Overview
+## 🚀 Key Capabilities
 
-This version is designed to work with a **single KJV JSON file** instead of separate book JSON files.
+- **Multi-Translation Engine**: Integrated support for **KJV, NLT, NIV, AMP, and MSG**.
+- **Live Sync Technology**: Real-time state synchronization between the controller and display using session-scoped broadcasting.
+- **Mobile Remote**: QR-code-based remote control allowing secondary operators to control the screen from anywhere in the building.
+- **Measured Pagination**: Intelligent logic that calculates text height to ensure verses are split perfectly across pages without cutting off text.
 
-It provides:
+---
 
-- scripture reference parsing
-- passage lookup from one local JSON file
-- clean projection screen for Zoom or projector sharing
-- popup display window
-- live sync between control and display windows
-- chapter navigation
-- page navigation for long passages
-- theme controls
-- clear, black screen, and white screen display modes
+## 🛠 New Operator Features
 
-## Bible Data Format
+### 1. Live Feedback System
+- **Dynamic "Live" Button**: The Send button automatically turns green and pulses with a white indicator when the current preview matches exactly what is on the output screen.
+- **Integrated Pulse Badge**: A "Live on Screen" indicator now sits beside the Preview heading, giving the operator instant confidence without blocking Bible text or metadata.
 
-This app expects a JSON file at:
+### 2. Speed & Efficiency
+- **Session History**: A "Recent Passages" bar automatically saves the last 5 unique verses for instant one-click recall during unpredictable sermons.
+- **Next Up Visual Cue**: The **Next** button pulses blue when a passage has multiple pages, ensuring the operator knows to continue clicking before the speaker finishes the verse.
+- **Keyboard Shortcuts**:
+  - `Space`: Send current preview to live output.
+  - `Arrow Right / Left`: Navigate through pages or adjacent verses.
+  - `Escape`: Emergency Clear (Blanks the screen immediately).
 
-```text
-public/data/KJV.json
-```
+### 3. Screen States
+- **Passage Mode**: Standard formatted scripture display.
+- **Clear Mode**: Blanks the text while retaining the background.
+- **Black/White Modes**: Forces the output to pure black or white for lighting transitions or video fades.
 
-The file should be a JSON object where:
+---
 
-- each **key** is a reference like `Genesis 1:1`
-- each **value** is the verse text
-
-Example:
-
-```json
-{
-  "Genesis 1:1": "In the beginning God created the heaven and the earth.",
-  "Genesis 1:2": "And the earth was without form, and void..."
-}
-```
-
-## Current Data Source
-
-This version is set up for your attached KJV JSON file, which uses reference keys like `"Genesis 1:1"` mapped to verse text.
-
-## Folder Structure
+## 📁 Folder Structure
 
 ```text
 app/
   display/
-    page.tsx
-  globals.css
-  layout.tsx
-  page.tsx
+    page.tsx        <-- The clean output/projection page
+  page.tsx          <-- The main control center logic
 
 components/
   control/
-    ControlClient.tsx
-    PreviewPanel.tsx
-    ReferenceInput.tsx
-    ThemeControls.tsx
-  display/
-    DisplayCanvas.tsx
-    DisplayClient.tsx
+    ControlClient.tsx   <-- The primary controller logic engine
+    PreviewPanel.tsx    <-- Real-time operator preview
+    ReferenceInput.tsx  <-- Intelligent scripture search bar
+    SettingsPanel.tsx   <-- Deep theme, font, and shadow controls
   ui/
-    Button.tsx
+    Button.tsx          <-- Optimized interactive elements
 
 lib/
-  bookMeta.ts
-  getAdjacentChapter.ts
-  getChapterMeta.ts
-  getPassage.ts
-  loadBible.ts
-  openDisplayWindow.ts
-  paginatePassage.ts
-  parseReference.ts
-  syncOutput.ts
-
-public/
-  data/
-    KJV.json
-
-styles/
-  README.md
-
-types/
-  scripture.ts
-```
-
-## Setup
-
-1. Place your Bible file here:
-
-```text
-public/data/KJV.json
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Start the development server:
-
-```bash
-npm run dev
-```
-
-4. Open in browser:
-
-- Control screen: `http://localhost:3000`
-- Projection screen: `http://localhost:3000/display`
-
-## How It Works
-
-### Control Window
-The main page is the operator control screen.
-
-You can:
-
-- type a scripture reference
-- preview the passage
-- open the projection window
-- send the passage to the output screen
-- move to previous/next chapter
-- move to previous/next page
-- change font size, colours, alignment, and line height
-
-### Display Window
-The `/display` page is the clean projection screen.
-
-It only shows:
-
-- scripture text
-- optional reference footer
-- current page state
-
-This is the page you can share in Zoom or send to a projector.
-
-## Supported Reference Formats
-
-Examples:
-
-- `John 3`
-- `John 3:16`
-- `John 3:16-17`
-- `Psalm 23`
-- `Romans 8:28-31`
-
-## Current Features
-
-- single-file KJV lookup
-- chapter-based navigation
-- passage pagination
-- output sync with `BroadcastChannel`
-- `localStorage` fallback
-- output popup window
-- projection-only display mode
-
-## Notes
-
-- The whole Bible file is loaded once and cached in memory for reuse.
-- This is fine for MVP usage with a local browser-based church presentation tool.
-- If needed later, the data can be split into book files for performance optimisation.
-
-## Troubleshooting
-
-### “Could not load KJV.json”
-Make sure the file exists at:
-
-```text
-public/data/KJV.json
-```
-
-### Passage not found
-Check that:
-- the reference format is correct
-- the book name matches the parser aliases
-- the requested chapter and verse exist in the JSON
-
-### Popup window does not open
-Browsers may block popups unless opened by a direct button click.
-Use the **Open Output** button manually.
-
-## Recommended Next Improvements
-
-- better presentation styling
-- smoother page-splitting rules
-- keyboard shortcuts
-- service history / recent passages
-- saved themes
-- fullscreen presentation controls
-- lower-third scripture mode for livestream overlays
+  nltApi.ts             <-- NLT Translation integration
+  apiBible.ts           <-- KJV, NIV, AMP, MSG API integration
+  syncOutput.ts         <-- Real-time session broadcasting
+  paginatePassageMeasured.ts <-- Core layout & text-fitting engine
+  session.ts            <-- Remote session & QR management
