@@ -1,0 +1,14 @@
+{
+  "version": "MSG",
+  "book": "Genesis",
+  "chapter": 1,
+  "verses": [
+    {
+      "chapter": 1,
+      "verse": 31,
+      "text": "God looked over everything he had made; it was so good, so very good! It was evening, it was morning— Day Six."
+    }
+  ],
+  "fetchedAt": "2026-04-21T21:48:10.199Z",
+  "source": "api-bible"
+}

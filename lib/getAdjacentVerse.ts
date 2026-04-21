@@ -1,6 +1,7 @@
-import type { BibleVersion, ParsedReference } from "@/types/scripture";
+import type { BibleVersion, ParsedReference, Verse } from "@/types/scripture";
 import { loadBible } from "./loadBible";
 import { fetchNltVerses } from "./nltApi";
+import { fetchApiBibleVerses } from "./apiBible";
 
 type AdjacentResult = {
   reference: string;
@@ -10,64 +11,74 @@ function formatReference(book: string, chapter: number, verse: number) {
   return `${book} ${chapter}:${verse}`;
 }
 
-export async function getAdjacentVerseReference(
-  parsed: ParsedReference,
+async function fetchChapterVerses(
   version: BibleVersion,
-  direction: "prev" | "next"
-): Promise<AdjacentResult | null> {
+  parsed: ParsedReference,
+): Promise<Verse[]> {
+  const chapterReference = `${parsed.book} ${parsed.chapter}`;
+
+  if (version === "NLT") {
+    return fetchNltVerses(version, chapterReference, {
+      ...parsed,
+      startVerse: undefined,
+      endVerse: undefined,
+    });
+  }
+
   if (version === "KJV") {
     const verses = await loadBible();
 
-    const bookVerses = verses
-      .filter((verse) => (verse.book ?? "").toLowerCase() === parsed.book.toLowerCase())
-      .sort((a, b) => {
-        if (a.chapter !== b.chapter) return a.chapter - b.chapter;
-        return a.verse - b.verse;
-      });
-
-    const targetVerse = parsed.startVerse ?? 1;
-
-    const index = bookVerses.findIndex(
-      (verse) => verse.chapter === parsed.chapter && verse.verse === targetVerse
-    );
-
-    if (index === -1) return null;
-
-    const adjacentIndex = direction === "prev" ? index - 1 : index + 1;
-    if (adjacentIndex < 0 || adjacentIndex >= bookVerses.length) return null;
-
-    const adjacentVerse = bookVerses[adjacentIndex];
-    if (!adjacentVerse) return null;
-
-    return {
-      reference: formatReference(parsed.book, adjacentVerse.chapter, adjacentVerse.verse),
-    };
+    return verses
+      .filter(
+        (verse) =>
+          (verse.book ?? "").toLowerCase() === parsed.book.toLowerCase() &&
+          verse.chapter === parsed.chapter,
+      )
+      .sort((a, b) => a.verse - b.verse);
   }
 
+  return fetchApiBibleVerses(version, chapterReference, {
+    ...parsed,
+    startVerse: undefined,
+    endVerse: undefined,
+  });
+}
+
+export async function getAdjacentVerseReference(
+  parsed: ParsedReference,
+  version: BibleVersion,
+  direction: "prev" | "next",
+): Promise<AdjacentResult | null> {
   const currentVerse = parsed.startVerse ?? 1;
 
+  const currentChapterVerses = await fetchChapterVerses(version, parsed);
+  if (!currentChapterVerses.length) return null;
+
+  const currentIndex = currentChapterVerses.findIndex(
+    (verse) => verse.verse === currentVerse,
+  );
+
+  if (currentIndex === -1) return null;
+
   if (direction === "prev") {
-    if (currentVerse > 1) {
+    const previousInChapter = currentChapterVerses[currentIndex - 1];
+    if (previousInChapter) {
       return {
-        reference: formatReference(parsed.book, parsed.chapter, currentVerse - 1),
+        reference: formatReference(parsed.book, parsed.chapter, previousInChapter.verse),
       };
     }
 
     if (parsed.chapter <= 1) return null;
 
     const previousChapter = parsed.chapter - 1;
-    const previousChapterReference = `${parsed.book} ${previousChapter}`;
+    const previousChapterVerses = await fetchChapterVerses(version, {
+      ...parsed,
+      chapter: previousChapter,
+      startVerse: undefined,
+      endVerse: undefined,
+    });
 
-    const previousChapterVerses = await fetchNltVerses(
-      version,
-      previousChapterReference,
-      {
-        ...parsed,
-        chapter: previousChapter,
-      }
-    );
-
-    if (previousChapterVerses.length === 0) return null;
+    if (!previousChapterVerses.length) return null;
 
     const lastVerse = previousChapterVerses[previousChapterVerses.length - 1];
     if (!lastVerse) return null;
@@ -77,44 +88,27 @@ export async function getAdjacentVerseReference(
     };
   }
 
-  const nextVerseReference = formatReference(parsed.book, parsed.chapter, currentVerse + 1);
-
-  try {
-    const nextVerseResult = await fetchNltVerses(
-      version,
-      nextVerseReference,
-      {
-        ...parsed,
-        chapter: parsed.chapter,
-        startVerse: currentVerse + 1,
-        endVerse: currentVerse + 1,
-      }
-    );
-
-    if (nextVerseResult.length > 0) {
-      return { reference: nextVerseReference };
-    }
-  } catch {}
+  const nextInChapter = currentChapterVerses[currentIndex + 1];
+  if (nextInChapter) {
+    return {
+      reference: formatReference(parsed.book, parsed.chapter, nextInChapter.verse),
+    };
+  }
 
   const nextChapter = parsed.chapter + 1;
-  const nextChapterFirstVerseReference = formatReference(parsed.book, nextChapter, 1);
+  const nextChapterVerses = await fetchChapterVerses(version, {
+    ...parsed,
+    chapter: nextChapter,
+    startVerse: undefined,
+    endVerse: undefined,
+  }).catch(() => []);
 
-  try {
-    const nextChapterResult = await fetchNltVerses(
-      version,
-      nextChapterFirstVerseReference,
-      {
-        ...parsed,
-        chapter: nextChapter,
-        startVerse: 1,
-        endVerse: 1,
-      }
-    );
+  if (!nextChapterVerses.length) return null;
 
-    if (nextChapterResult.length > 0) {
-      return { reference: nextChapterFirstVerseReference };
-    }
-  } catch {}
+  const firstVerse = nextChapterVerses[0];
+  if (!firstVerse) return null;
 
-  return null;
+  return {
+    reference: formatReference(parsed.book, nextChapter, firstVerse.verse),
+  };
 }

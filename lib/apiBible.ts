@@ -22,10 +22,18 @@ function assertApiBibleVersion(
   }
 }
 
-const verseCache = new Map<string, Verse[]>();
+const chapterCache = new Map<string, Verse[]>();
 
-function makeCacheKey(version: ApiBibleVersion, reference: string) {
-  return `${version}:${reference.trim().toLowerCase()}`;
+function makeChapterCacheKey(version: ApiBibleVersion, parsed: ParsedReference) {
+  return `${version}:${parsed.book.trim().toLowerCase()}:${parsed.chapter}`;
+}
+
+function sliceVersesForReference(verses: Verse[], parsed: ParsedReference): Verse[] {
+  return verses.filter((verse) => {
+    if (parsed.startVerse !== undefined && verse.verse < parsed.startVerse) return false;
+    if (parsed.endVerse !== undefined && verse.verse > parsed.endVerse) return false;
+    return true;
+  });
 }
 
 export async function fetchApiBibleVerses(
@@ -35,9 +43,13 @@ export async function fetchApiBibleVerses(
 ): Promise<Verse[]> {
   assertApiBibleVersion(version);
 
-  const cacheKey = makeCacheKey(version, reference);
-  const cached = verseCache.get(cacheKey);
-  if (cached) return cached;
+  const chapterCacheKey = makeChapterCacheKey(version, parsed);
+  const cachedChapter = chapterCache.get(chapterCacheKey);
+
+  if (cachedChapter?.length) {
+    const sliced = sliceVersesForReference(cachedChapter, parsed);
+    if (sliced.length) return sliced;
+  }
 
   const response = await fetch("/api/api-bible", {
     method: "POST",
@@ -66,6 +78,15 @@ export async function fetchApiBibleVerses(
     throw new Error(`That passage was not found in ${version}.`);
   }
 
-  verseCache.set(cacheKey, data.verses);
-  return data.verses;
+  chapterCache.set(
+    chapterCacheKey,
+    [...data.verses].sort((a, b) => a.verse - b.verse),
+  );
+
+  const sliced = sliceVersesForReference(data.verses, parsed);
+  if (!sliced.length) {
+    throw new Error(`That passage was not found in ${version}.`);
+  }
+
+  return sliced;
 }

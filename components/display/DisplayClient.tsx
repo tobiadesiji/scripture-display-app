@@ -3,22 +3,37 @@
 import { useEffect, useState } from "react";
 import DisplayCanvas from "./DisplayCanvas";
 import {
+  readDisplaySessionBinding,
   readStoredOutputState,
+  subscribeToDisplaySessionBinding,
   subscribeToOutputState,
   subscribeToPresentationCommands,
+  writeDisplayPresence,
 } from "@/lib/syncOutput";
 import type { OutputState } from "@/types/scripture";
 
-type Props = {
-  sessionId: string;
-};
-
-export default function DisplayClient({ sessionId }: Props) {
+export default function DisplayClient() {
+  const [sessionId, setSessionId] = useState("");
   const [state, setState] = useState<OutputState | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    if (!sessionId) return;
+    const boundSessionId = readDisplaySessionBinding();
+    if (boundSessionId) {
+      setSessionId(boundSessionId);
+    }
+
+    return subscribeToDisplaySessionBinding((nextSessionId) => {
+      setSessionId(nextSessionId);
+      setState(nextSessionId ? readStoredOutputState(nextSessionId) : null);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!sessionId) {
+      setState(null);
+      return;
+    }
 
     const stored = readStoredOutputState(sessionId);
     if (stored) {
@@ -44,6 +59,20 @@ export default function DisplayClient({ sessionId }: Props) {
         }
       } catch {}
     });
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    writeDisplayPresence(sessionId);
+
+    const interval = window.setInterval(() => {
+      writeDisplayPresence(sessionId);
+    }, 3000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
   }, [sessionId]);
 
   useEffect(() => {

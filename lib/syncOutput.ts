@@ -3,6 +3,8 @@ import type { OutputState } from "@/types/scripture";
 export const OUTPUT_CHANNEL = "scripture-output";
 export const OUTPUT_STORAGE_KEY = "scripture-output-state";
 export const OUTPUT_VIEWPORT_STORAGE_KEY = "scripture-output-viewport";
+export const DISPLAY_SESSION_STORAGE_KEY = "scripture-display-session";
+export const DISPLAY_PRESENCE_STORAGE_KEY = "scripture-display-presence";
 
 export type OutputViewport = { width: number; height: number };
 
@@ -38,12 +40,106 @@ function getScopedViewportStorageKey(sessionId: string) {
   return `${OUTPUT_VIEWPORT_STORAGE_KEY}:${sessionId}`;
 }
 
+function getDisplayPresenceStorageKey(sessionId: string) {
+  return `${DISPLAY_PRESENCE_STORAGE_KEY}:${sessionId}`;
+}
+
 export function createOutputChannel(sessionId: string) {
   if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
     return null;
   }
 
   return new BroadcastChannel(getScopedChannelName(sessionId));
+}
+
+export function writeDisplaySessionBinding(sessionId: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DISPLAY_SESSION_STORAGE_KEY, sessionId);
+}
+
+export function readDisplaySessionBinding() {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(DISPLAY_SESSION_STORAGE_KEY) ?? "";
+}
+
+export function clearDisplaySessionBinding() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(DISPLAY_SESSION_STORAGE_KEY);
+}
+
+export function subscribeToDisplaySessionBinding(
+  callback: (sessionId: string) => void,
+) {
+  if (typeof window === "undefined") return () => {};
+
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== DISPLAY_SESSION_STORAGE_KEY) return;
+    callback(event.newValue ?? "");
+  };
+
+  window.addEventListener("storage", onStorage);
+
+  return () => {
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+export function writeDisplayPresence(sessionId: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(
+    getDisplayPresenceStorageKey(sessionId),
+    JSON.stringify({ ts: Date.now() }),
+  );
+}
+
+export function readDisplayPresence(sessionId: string): number | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = localStorage.getItem(getDisplayPresenceStorageKey(sessionId));
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as { ts?: number };
+    return typeof parsed.ts === "number" ? parsed.ts : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearDisplayPresence(sessionId: string) {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(getDisplayPresenceStorageKey(sessionId));
+}
+
+export function subscribeToDisplayPresence(
+  sessionId: string,
+  callback: (timestamp: number | null) => void,
+) {
+  if (typeof window === "undefined") return () => {};
+
+  const key = getDisplayPresenceStorageKey(sessionId);
+
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== key) return;
+
+    if (!event.newValue) {
+      callback(null);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(event.newValue) as { ts?: number };
+      callback(typeof parsed.ts === "number" ? parsed.ts : null);
+    } catch {
+      callback(null);
+    }
+  };
+
+  window.addEventListener("storage", onStorage);
+
+  return () => {
+    window.removeEventListener("storage", onStorage);
+  };
 }
 
 async function postPresentationUpdate(
@@ -118,7 +214,9 @@ export function publishOutputViewport(
   void postPresentationUpdate({ viewport }, sessionId);
 }
 
-export function readStoredOutputViewport(sessionId: string): OutputViewport | null {
+export function readStoredOutputViewport(
+  sessionId: string,
+): OutputViewport | null {
   if (typeof window === "undefined") return null;
 
   const raw = localStorage.getItem(getScopedViewportStorageKey(sessionId));

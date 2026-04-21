@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import type { BibleVersion, ParsedReference, Verse } from "@/types/scripture";
+import {
+  getCachedVersesForReference,
+  writeChapterCache,
+} from "@/lib/scriptureCache";
 
 export const runtime = "nodejs";
 
@@ -33,41 +37,79 @@ const API_BIBLE_ID_BY_VERSION: Record<ApiBibleVersion, string | undefined> = {
   AMP: process.env.API_BIBLE_AMP_ID,
 };
 
-function stripHtml(input: string): string {
+function decodeHtmlEntities(input: string): string {
   return input
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<sup[^>]*>.*?<\/sup>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/\r/g, "")
-    .replace(/\u00a0/g, " ")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n[ \t]+/g, "\n")
-    .replace(/[ \t]+\n/g, "\n")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#(\d+);/g, (_match, code) => {
+      const value = Number.parseInt(code, 10);
+      return Number.isFinite(value) ? String.fromCharCode(value) : "";
+    });
+}
+
+function stripHtml(input: string): string {
+  return decodeHtmlEntities(
+    input
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<\/h\d>/gi, "\n")
+      .replace(/<\/li>/gi, "\n")
+      .replace(/<li[^>]*>/gi, "\n")
+      .replace(/<\/?span[^>]*>/gi, "")
+      .replace(/<\/?sup[^>]*>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\r/g, "")
+      .replace(/\u00a0/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n[ \t]+/g, "\n")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{2,}/g, "\n")
+      .trim(),
+  );
+}
+
+function normalizeBookName(input: string) {
+  return input.toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim();
+}
+
+function parsePassageReference(reference: string) {
+  const cleaned = reference.replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
+  const match = cleaned.match(/^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/);
+
+  if (!match) return null;
+
+  return {
+    book: normalizeBookName(match[1]),
+    chapter: Number.parseInt(match[2], 10),
+    startVerse: match[3] ? Number.parseInt(match[3], 10) : undefined,
+    endVerse: match[4] ? Number.parseInt(match[4], 10) : undefined,
+  };
+}
+
+function normalizePassageForVerseParsing(html: string): string {
+  const withVerseBreakHints = html
+    .replace(/<sup[^>]*>\s*(\d+)\s*<\/sup>/gi, "\n$1 ")
+    .replace(/<span[^>]*>\s*(\d+)\s*<\/span>/gi, "\n$1 ")
+    .replace(
+      /(^|>|\s)(\d{1,3})(?=\s+[A-Z“"'(\[])/g,
+      (_match, lead, verse) => `${lead}\n${verse}`,
+    );
+
+  return stripHtml(withVerseBreakHints)
     .replace(/\n{2,}/g, "\n")
     .trim();
 }
 
-function splitPassageIntoVerses(
-  html: string,
-  parsed: ParsedReference,
-): Verse[] {
-  const plain = stripHtml(html);
-
-  const normalized = plain
-    .replace(/(^|\s)(\d+)\s+/g, (_match, lead, verse) => `${lead}\n${verse} `)
-    .replace(/\n{2,}/g, "\n")
-    .trim();
+function splitPassageIntoVerses(html: string, chapter: number): Verse[] {
+  const normalized = normalizePassageForVerseParsing(html);
 
   const matches = normalized.matchAll(
-    /(?:^|\n)(\d+)\s+([\s\S]*?)(?=(?:\n\d+\s)|$)/g,
+    /(?:^|\n)(\d{1,3})\s+([\s\S]*?)(?=(?:\n\d{1,3}\s)|$)/g,
   );
 
   const verses = Array.from(matches)
@@ -78,7 +120,7 @@ function splitPassageIntoVerses(
       if (!Number.isInteger(verseNumber) || !text) return null;
 
       return {
-        chapter: parsed.chapter,
+        chapter,
         verse: verseNumber,
         text,
       } satisfies Verse;
@@ -86,31 +128,32 @@ function splitPassageIntoVerses(
     .filter((item): item is Verse => item !== null)
     .sort((a, b) => a.verse - b.verse);
 
-  if (verses.length > 0) {
-    return verses.filter((verse) => {
-      if (parsed.startVerse && verse.verse < parsed.startVerse) return false;
-      if (parsed.endVerse && verse.verse > parsed.endVerse) return false;
-      return true;
-    });
+  const deduped = new Map<number, Verse>();
+  for (const verse of verses) {
+    if (!deduped.has(verse.verse)) {
+      deduped.set(verse.verse, verse);
+    }
   }
 
-  const fallbackText = plain.replace(/^\d+\s+/, "").trim();
+  return Array.from(deduped.values()).sort((a, b) => a.verse - b.verse);
+}
 
-  if (
-    fallbackText &&
-    parsed.startVerse &&
-    (!parsed.endVerse || parsed.startVerse === parsed.endVerse)
-  ) {
-    return [
-      {
-        chapter: parsed.chapter,
-        verse: parsed.startVerse,
-        text: fallbackText,
-      },
-    ];
+function sliceVersesForReference(
+  verses: Verse[],
+  parsed: ParsedReference,
+): Verse[] {
+  if (parsed.startVerse === undefined) {
+    return [...verses].sort((a, b) => a.verse - b.verse);
   }
 
-  return [];
+  const upper = parsed.endVerse ?? parsed.startVerse;
+
+  return verses
+    .filter(
+      (verse) =>
+        verse.verse >= parsed.startVerse! && verse.verse <= upper,
+    )
+    .sort((a, b) => a.verse - b.verse);
 }
 
 async function apiBibleGet(url: URL, apiKey: string) {
@@ -131,6 +174,110 @@ async function apiBibleGet(url: URL, apiKey: string) {
   }
 
   return response.json();
+}
+
+function makeSingleVerseFallback(
+  html: string,
+  parsed: ParsedReference,
+): Verse[] | null {
+  if (
+    parsed.startVerse === undefined ||
+    (parsed.endVerse !== undefined && parsed.startVerse !== parsed.endVerse)
+  ) {
+    return null;
+  }
+
+  const text = stripHtml(html)
+    .replace(/^\d{1,3}\s+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text) return null;
+
+  return [
+    {
+      chapter: parsed.chapter,
+      verse: parsed.startVerse,
+      text,
+    },
+  ];
+}
+
+function getSearchQuery(reference: string, parsed: ParsedReference) {
+  if (parsed.startVerse !== undefined) {
+    return reference.trim();
+  }
+
+  return `${parsed.book} ${parsed.chapter}`;
+}
+
+function isWholeChapterRequest(parsed: ParsedReference) {
+  return parsed.startVerse === undefined;
+}
+
+function scorePassageMatch(
+  passage: ApiBibleSearchPassage,
+  parsed: ParsedReference,
+): number {
+  if (!passage.reference) return -1;
+
+  const parsedRef = parsePassageReference(passage.reference);
+  if (!parsedRef) return -1;
+
+  if (parsedRef.book !== normalizeBookName(parsed.book)) return -1;
+  if (parsedRef.chapter !== parsed.chapter) return -1;
+
+  let score = 10;
+
+  if (parsed.startVerse === undefined) {
+    if (parsedRef.startVerse === undefined) {
+      score += 100;
+    } else {
+      score -= 10;
+    }
+    return score;
+  }
+
+  if (parsedRef.startVerse === undefined) {
+    score += 20;
+  } else if (parsedRef.startVerse === parsed.startVerse) {
+    score += 100;
+  } else {
+    const distance = Math.abs(parsedRef.startVerse - parsed.startVerse);
+    score += Math.max(0, 40 - distance);
+  }
+
+  if (parsed.endVerse !== undefined) {
+    if (parsedRef.endVerse === parsed.endVerse) {
+      score += 50;
+    } else if (
+      parsedRef.startVerse !== undefined &&
+      parsedRef.endVerse !== undefined &&
+      parsedRef.startVerse <= parsed.startVerse &&
+      parsedRef.endVerse >= parsed.endVerse
+    ) {
+      score += 30;
+    }
+  }
+
+  return score;
+}
+
+function findBestPassage(
+  passages: ApiBibleSearchPassage[] | undefined,
+  parsed: ParsedReference,
+) {
+  if (!passages?.length) return null;
+
+  const ranked = passages
+    .map((passage) => ({
+      passage,
+      score: scorePassageMatch(passage, parsed),
+    }))
+    .filter((item) => item.score >= 0)
+    .sort((a, b) => b.score - a.score);
+
+  return ranked[0]?.passage ?? passages[0] ?? null;
 }
 
 export async function POST(request: Request) {
@@ -176,15 +323,33 @@ export async function POST(request: Request) {
       );
     }
 
+    const cachedVerses = await getCachedVersesForReference(
+      version,
+      parsed.book,
+      parsed.chapter,
+      parsed.startVerse,
+      parsed.endVerse,
+    );
+
+    if (cachedVerses?.length) {
+      return NextResponse.json({
+        ok: true,
+        verses: cachedVerses,
+        cached: true,
+      });
+    }
+
+    const searchQuery = getSearchQuery(reference, parsed);
+
     const searchUrl = new URL(`${API_BIBLE_BASE_URL}/bibles/${bibleId}/search`);
-    searchUrl.searchParams.set("query", reference);
+    searchUrl.searchParams.set("query", searchQuery);
 
     const searchData = (await apiBibleGet(
       searchUrl,
       apiKey,
     )) as ApiBibleSearchResponse;
 
-    const passage = searchData.data?.passages?.[0];
+    const passage = findBestPassage(searchData.data?.passages, parsed);
 
     if (!passage?.content) {
       return NextResponse.json(
@@ -193,20 +358,66 @@ export async function POST(request: Request) {
       );
     }
 
-    const verses = splitPassageIntoVerses(passage.content, parsed);
+    const chapterVerses = splitPassageIntoVerses(passage.content, parsed.chapter);
 
-    if (!verses.length) {
+    if (!chapterVerses.length) {
+      const fallbackVerses = makeSingleVerseFallback(passage.content, parsed);
+
+      if (fallbackVerses?.length) {
+        return NextResponse.json({
+          ok: true,
+          verses: fallbackVerses,
+          cached: false,
+          fallback: true,
+        });
+      }
+
       return NextResponse.json(
         {
           ok: false,
           error: `That passage was not found in ${version}.`,
-          details: `Passage search returned content but no verses could be parsed for ${reference}.`,
+          details: `Passage content returned but verse parsing failed for ${searchQuery}.`,
         },
         { status: 404 },
       );
     }
 
-    return NextResponse.json({ ok: true, verses });
+    if (isWholeChapterRequest(parsed)) {
+      await writeChapterCache({
+        version,
+        book: parsed.book,
+        chapter: parsed.chapter,
+        verses: chapterVerses,
+        fetchedAt: new Date().toISOString(),
+        source: "api-bible",
+      });
+    }
+
+    const verses = sliceVersesForReference(chapterVerses, parsed);
+
+    if (!verses.length) {
+      const fallbackVerses = makeSingleVerseFallback(passage.content, parsed);
+
+      if (fallbackVerses?.length) {
+        return NextResponse.json({
+          ok: true,
+          verses: fallbackVerses,
+          cached: false,
+          fallback: true,
+        });
+      }
+
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `That passage was not found in ${version}.`,
+          details: `No verses matched ${reference}.`,
+        },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, verses, cached: false });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown API.Bible error.";

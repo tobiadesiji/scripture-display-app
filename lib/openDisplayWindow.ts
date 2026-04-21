@@ -1,12 +1,46 @@
+import { writeDisplaySessionBinding } from "@/lib/syncOutput";
+
+const DISPLAY_POPUP_NAME = "scripture-display";
+const DEFAULT_WIDTH = 1400;
+const DEFAULT_HEIGHT = 900;
+
+function getPopupFeatures() {
+  if (typeof window === "undefined") {
+    return `popup=yes,width=${DEFAULT_WIDTH},height=${DEFAULT_HEIGHT}`;
+  }
+
+  const width = Math.min(DEFAULT_WIDTH, Math.max(1000, window.screen.availWidth - 80));
+  const height = Math.min(DEFAULT_HEIGHT, Math.max(700, window.screen.availHeight - 120));
+  const left = Math.max(20, window.screen.availWidth - width - 20);
+  const top = 40;
+
+  return [
+    "popup=yes",
+    `width=${width}`,
+    `height=${height}`,
+    `left=${left}`,
+    `top=${top}`,
+    "resizable=yes",
+    "scrollbars=no",
+  ].join(",");
+}
+
 export function openDisplayWindow(sessionId: string) {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined" || !sessionId) return null;
 
-  const popup = window.open(
-    `/display?session=${encodeURIComponent(sessionId)}`,
-    `scripture-display-${sessionId}`,
-    "popup=yes,width=1400,height=900",
-  );
+  writeDisplaySessionBinding(sessionId);
 
-  popup?.focus();
+  const popup = window.open("/display", DISPLAY_POPUP_NAME, getPopupFeatures());
+
+  if (!popup) return null;
+
+  try {
+    popup.focus();
+    popup.resizeTo?.(Math.min(DEFAULT_WIDTH, window.screen.availWidth - 40), Math.min(DEFAULT_HEIGHT, window.screen.availHeight - 80));
+    popup.moveTo?.(Math.max(0, window.screen.availWidth - Math.min(DEFAULT_WIDTH, window.screen.availWidth - 40) - 20), 20);
+  } catch {
+    // Browser may block resize/move; popup still works.
+  }
+
   return popup;
 }

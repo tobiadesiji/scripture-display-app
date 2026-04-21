@@ -4,19 +4,15 @@ import { cleanNltHtmlToVerses } from "./cleanNltHtml";
 type NltApiResponse = {
   ok?: boolean;
   raw?: string;
+  verses?: Verse[];
   error?: string;
   details?: string;
 };
 
-const rawCache = new Map<string, string>();
-const verseCache = new Map<string, Verse[]>();
+const chapterVerseCache = new Map<string, Verse[]>();
 
-function makeRawCacheKey(reference: string) {
-  return `NLT:raw:${reference.trim().toLowerCase()}`;
-}
-
-function makeVerseCacheKey(reference: string) {
-  return `NLT:verses:${reference.trim().toLowerCase()}`;
+function makeChapterCacheKey(parsed: ParsedReference) {
+  return `NLT:chapter:${parsed.book.trim().toLowerCase()}:${parsed.chapter}`;
 }
 
 function dedupeAndSortVerses(verses: Verse[]): Verse[] {
@@ -40,19 +36,32 @@ function sliceVersesForReference(
   parsed: ParsedReference,
 ): Verse[] {
   return verses.filter((verse) => {
-    if (parsed.startVerse && verse.verse < parsed.startVerse) return false;
-    if (parsed.endVerse && verse.verse > parsed.endVerse) return false;
+    if (parsed.startVerse !== undefined && verse.verse < parsed.startVerse) return false;
+    if (parsed.endVerse !== undefined && verse.verse > parsed.endVerse) return false;
     return true;
   });
 }
 
-export async function fetchNltPassageText(reference: string): Promise<string> {
-  const cacheKey = makeRawCacheKey(reference);
-  const cached = rawCache.get(cacheKey);
-  if (cached) return cached;
+export async function fetchNltVerses(
+  version: BibleVersion,
+  reference: string,
+  parsed: ParsedReference,
+): Promise<Verse[]> {
+  if (version !== "NLT") {
+    throw new Error(`Unsupported NLT version request: ${version}`);
+  }
 
+  const chapterCacheKey = makeChapterCacheKey(parsed);
+  const cachedChapter = chapterVerseCache.get(chapterCacheKey);
+
+  if (cachedChapter?.length) {
+    const sliced = sliceVersesForReference(cachedChapter, parsed);
+    if (sliced.length) return sliced;
+  }
+
+  const chapterReference = makeChapterReference(parsed);
   const url = new URL("/api/nlt-passages", window.location.origin);
-  url.searchParams.set("ref", reference);
+  url.searchParams.set("ref", chapterReference);
   url.searchParams.set("version", "NLT");
 
   const response = await fetch(url.toString(), {
@@ -69,46 +78,27 @@ export async function fetchNltPassageText(reference: string): Promise<string> {
     );
   }
 
-  if (!data.raw) {
-    throw new Error("NLT API returned no passage text.");
-  }
+  let chapterVerses: Verse[] = [];
 
-  rawCache.set(cacheKey, data.raw);
-  return data.raw;
-}
-
-export async function fetchNltVerses(
-  version: BibleVersion,
-  reference: string,
-  parsed: ParsedReference,
-): Promise<Verse[]> {
-  if (version !== "NLT") {
-    throw new Error(`Unsupported NLT version request: ${version}`);
-  }
-
-  const cacheKey = makeVerseCacheKey(reference);
-  const cached = verseCache.get(cacheKey);
-  if (cached) return cached;
-
-  const chapterReference = makeChapterReference(parsed);
-  const raw = await fetchNltPassageText(chapterReference);
-
-  const chapterVerses = dedupeAndSortVerses(
-    cleanNltHtmlToVerses(raw, parsed.chapter),
-  );
-
-  if (chapterVerses.length === 0) {
-    throw new Error(
-      `NLT passage returned no renderable verses. Raw response: ${raw.slice(0, 400)}`,
+  if (data.verses?.length) {
+    chapterVerses = dedupeAndSortVerses(data.verses);
+  } else if (data.raw) {
+    chapterVerses = dedupeAndSortVerses(
+      cleanNltHtmlToVerses(data.raw, parsed.chapter),
     );
   }
 
+  if (!chapterVerses.length) {
+    throw new Error("NLT passage returned no renderable verses.");
+  }
+
+  chapterVerseCache.set(chapterCacheKey, chapterVerses);
+
   const verses = sliceVersesForReference(chapterVerses, parsed);
 
-  if (verses.length === 0) {
+  if (!verses.length) {
     throw new Error("That passage was not found in NLT.");
   }
 
-  verseCache.set(cacheKey, verses);
   return verses;
 }
