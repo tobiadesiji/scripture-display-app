@@ -46,6 +46,9 @@ const DEFAULT_THEME: ThemeSettings = {
 
 const DEFAULT_VIEWPORT = { width: 1400, height: 900 };
 
+const LIVE_BUTTON_TAILWIND = "text-white shadow-lg";
+const NEXT_GLOW_CLASSES = "ring-2 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.4)] animate-pulse";
+
 // --- Sub-components ---
 
 function UtilityCard({ title, subtitle, actionLabel, onOpen }: { title: string; subtitle: string; actionLabel: string; onOpen: () => void }) {
@@ -68,7 +71,7 @@ function MobileRemoteModal({ isOpen, onClose, sessionId, remoteUrl }: { isOpen: 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden">
         <div className="flex items-start justify-between border-b border-slate-800 px-5 py-4">
-          <div><h2 className="text-xl font-semibold text-white">Mobile Remote</h2><p className="mt-1 text-sm text-slate-400">Scan QR code for session control</p></div>
+          <div><h2 className="text-xl font-semibold text-white">Mobile Remote</h2><p className="mt-1 text-sm text-slate-400">Scan for control</p></div>
           <button type="button" onClick={onClose} className="rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-slate-800 hover:text-white">Close</button>
         </div>
         <div className="px-5 py-5 text-center">
@@ -86,7 +89,7 @@ function SettingsModal({ isOpen, onClose, theme, onThemeChange }: { isOpen: bool
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
       <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
         <div className="flex items-start justify-between border-b border-slate-800 px-5 py-4">
-          <div><h2 className="text-xl font-semibold text-white">Display Settings</h2><p className="mt-1 text-sm text-slate-400">Font, text styling, and colors</p></div>
+          <div><h2 className="text-xl font-semibold text-white">Display Settings</h2><p className="mt-1 text-sm text-slate-400">Styling and colors</p></div>
           <button type="button" onClick={onClose} className="rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-slate-800 hover:text-white">Close</button>
         </div>
         <div className="max-h-[75vh] overflow-y-auto p-6"><SettingsPanel theme={theme} onThemeChange={onThemeChange} /></div>
@@ -99,7 +102,7 @@ function MobileSettingsCard({ isOpen, onToggle, theme, onThemeChange }: { isOpen
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900 xl:hidden overflow-hidden">
       <button onClick={onToggle} className="flex w-full items-center justify-between px-4 py-4 text-left">
-        <div><p className="text-base font-semibold text-white">Display Settings</p><p className="mt-1 text-xs text-slate-400">Colors, fonts, and layout</p></div>
+        <p className="text-base font-semibold text-white">Display Settings</p>
         <span className="text-xs uppercase tracking-wide text-slate-400">{isOpen ? "Hide" : "Show"}</span>
       </button>
       {isOpen && <div className="border-t border-slate-800 p-4"><SettingsPanel theme={theme} onThemeChange={onThemeChange} /></div>}
@@ -160,7 +163,7 @@ export default function ControlClient() {
     setLiveBundleKey(getBundleKey(nextBundle));
   }, [sessionId, theme, getBundleKey]);
 
-  const loadPassage = async (submittedReference: string, options?: { autoSend?: boolean; overrideVersion?: BibleVersion }) => {
+  const loadPassage = useCallback(async (submittedReference: string, options?: { autoSend?: boolean; overrideVersion?: BibleVersion }) => {
     const parseResult: ParseReferenceResult = parseReferenceDetailed(submittedReference);
     if (!parseResult.ok) { setBundle(null); setError(parseResult.error.message); return null; }
 
@@ -194,7 +197,7 @@ export default function ControlClient() {
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
     }
-  };
+  }, [version, theme, outputViewport, addToHistory, sendBundle]);
 
   const clearScreen = useCallback(() => {
     if (!sessionId) return;
@@ -203,7 +206,6 @@ export default function ControlClient() {
     setLiveBundleKey("");
   }, [sessionId, theme]);
 
-  // RESTORED: Centralized logic for the "Send/Live" button
   const handleSend = useCallback(async () => {
     await loadPassage(referenceInput, { autoSend: true });
   }, [referenceInput, loadPassage]);
@@ -238,7 +240,7 @@ export default function ControlClient() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
       switch (e.code) {
-        case "Space": e.preventDefault(); handleSend(); break; // Space now triggers the restored handleSend
+        case "Space": e.preventDefault(); handleSend(); break;
         case "ArrowRight": navigate("next"); break;
         case "ArrowLeft": navigate("prev"); break;
         case "Escape": clearScreen(); break;
@@ -246,7 +248,7 @@ export default function ControlClient() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [bundle, handleSend, navigate, clearScreen]);
+  }, [handleSend, navigate, clearScreen]);
 
   useEffect(() => {
     const safeSession = ensureSessionInLocation();
@@ -300,7 +302,7 @@ export default function ControlClient() {
                 </select>
               </div>
 
-              <ReferenceInput value={referenceInput} error={error || null} onChange={(v) => { setReferenceInput(v); setError(""); }} onSubmit={() => void handleSend()} />
+              <ReferenceInput value={referenceInput} error={error || null} onChange={(v) => { setReferenceInput(v); setError(""); }} onSubmit={handleSend} />
               
               {recentPassages.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -315,17 +317,28 @@ export default function ControlClient() {
               <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
                 <Button onClick={() => void loadPassage(referenceInput, { autoSend: false })} disabled={isLoading}>Load</Button>
                 
-                {/* Send Button restored to trigger full handleSend logic */}
                 <Button 
                   onClick={handleSend} 
                   disabled={isLoading || !sessionId} 
-                  className={`relative flex items-center justify-center ${isCurrentPreviewLive ? "border-emerald-600 bg-emerald-600" : ""}`}
+                  style={{
+                    backgroundColor: isCurrentPreviewLive ? '#10b981' : '', 
+                    borderColor: isCurrentPreviewLive ? '#059669' : ''      
+                  }}
+                  className={`relative flex items-center justify-center transition-all ${isCurrentPreviewLive ? LIVE_BUTTON_TAILWIND : ""}`}
                 >
-                    <div className="flex items-center justify-center w-full relative">
-                      {isCurrentPreviewLive && <span className="absolute left-0 h-2 w-2 rounded-full bg-white animate-pulse" />}
-                      <span className="mx-auto text-center">{isCurrentPreviewLive ? "Live" : "Send"}</span>
-                    </div>
+                  <div className="flex w-full items-center justify-center relative">
+                    {isCurrentPreviewLive && (
+                      <div className="w-0 h-0 relative flex items-center justify-center">
+                        <span className="absolute right-3 flex h-2 w-2 items-center justify-center">
+                          <span className="absolute h-full w-full animate-ping rounded-full bg-white opacity-75"></span>
+                          <span className="h-2 w-2 rounded-full bg-white"></span>
+                        </span>
+                      </div>
+                    )}
+                    <span className="font-semibold text-center">{isCurrentPreviewLive ? "Live" : "Send"}</span>
+                  </div>
                 </Button>
+
                 <Button onClick={() => sessionId && openDisplayWindow(sessionId)} disabled={!sessionId}>Open Output</Button>
                 <Button onClick={clearScreen} disabled={!sessionId}>Clear</Button>
               </div>
@@ -333,7 +346,13 @@ export default function ControlClient() {
               <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <Button onClick={() => void navigate("prev")} disabled={!bundle || isLoading}>Prev</Button>
-                  <Button onClick={() => void navigate("next")} disabled={!bundle || isLoading} className={hasMoreContent ? "ring-2 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.4)] animate-pulse" : ""}>Next {hasMoreContent && "Page"}</Button>
+                  <Button 
+                    onClick={() => void navigate("next")} 
+                    disabled={!bundle || isLoading} 
+                    className={hasMoreContent ? NEXT_GLOW_CLASSES : ""}
+                  >
+                    Next {hasMoreContent && "Page"}
+                  </Button>
                 </div>
               </div>
 
@@ -352,12 +371,7 @@ export default function ControlClient() {
               </div>
             </section>
 
-            <MobileSettingsCard 
-              isOpen={showMobileSettings} 
-              onToggle={() => setShowMobileSettings(!showMobileSettings)} 
-              theme={theme} 
-              onThemeChange={setTheme} 
-            />
+            <MobileSettingsCard isOpen={showMobileSettings} onToggle={() => setShowMobileSettings(!showMobileSettings)} theme={theme} onThemeChange={setTheme} />
           </div>
 
           <div className="hidden xl:block">
