@@ -7,5 +7,4 @@ dist
 .env.local
 *.log
 docker-compose.yml
-
 /lib/generated/prisma
