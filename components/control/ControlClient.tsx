@@ -50,6 +50,7 @@ const DEFAULT_THEME: ThemeSettings = {
 
 const DEFAULT_VIEWPORT = { width: 1400, height: 900 };
 const CONTROLLER_SESSION_STORAGE_KEY = "scripture-controller-session";
+const CONTROL_THEME_STORAGE_KEY = "scripture-control-theme";
 
 const LIVE_BUTTON_TAILWIND = "text-white shadow-lg";
 const NEXT_GLOW_CLASSES =
@@ -158,32 +159,162 @@ function MenuIcon() {
   );
 }
 
-function UtilityCard({
-  title,
-  subtitle,
-  actionLabel,
-  onOpen,
+function SunIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2.5" />
+      <path d="M12 19.5V22" />
+      <path d="M4.93 4.93l1.77 1.77" />
+      <path d="M17.3 17.3l1.77 1.77" />
+      <path d="M2 12h2.5" />
+      <path d="M19.5 12H22" />
+      <path d="M4.93 19.07l1.77-1.77" />
+      <path d="M17.3 6.7l1.77-1.77" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 1-3 0 1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 1 0-3 1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 1 3 0 1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.26.37.47.79.6 1.23a1.7 1.7 0 0 0 .99.99 1.7 1.7 0 0 1 0 3 1.7 1.7 0 0 0-.99.99c-.13.44-.34.86-.6 1.23Z" />
+    </svg>
+  );
+}
+
+function RemoteIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+      <circle cx="12" cy="18" r="1" />
+      <path d="M9 6h6" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 21a8 8 0 0 0-16 0" />
+      <circle cx="12" cy="8" r="4" />
+    </svg>
+  );
+}
+
+function ThemeToggle({
+  isLight,
+  onToggle,
 }: {
-  title: string;
-  subtitle: string;
-  actionLabel: string;
-  onOpen: () => void;
+  isLight: boolean;
+  onToggle: () => void;
 }) {
   return (
     <button
       type="button"
-      onClick={onOpen}
-      className="w-full max-w-[180px] overflow-hidden rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-left transition hover:border-slate-700 hover:bg-slate-800/80"
+      onClick={onToggle}
+      aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
+      title={isLight ? "Switch to dark mode" : "Switch to light mode"}
+      className={`inline-flex items-center gap-2 rounded-full border px-2 py-1.5 transition ${
+        isLight
+          ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+          : "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+      }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-white">{title}</p>
-          <p className="mt-1 text-xs text-slate-400">{subtitle}</p>
-        </div>
-        <span className="shrink-0 text-[10px] uppercase tracking-wide text-slate-400">
-          {actionLabel}
-        </span>
-      </div>
+      <span
+        className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
+          isLight
+            ? "bg-amber-100 text-amber-600"
+            : "bg-slate-800 text-slate-200"
+        }`}
+      >
+        {isLight ? <SunIcon /> : <MoonIcon />}
+      </span>
+
+      <span className="text-xs font-semibold uppercase tracking-wider">
+        {isLight ? "Light" : "Dark"}
+      </span>
+    </button>
+  );
+}
+
+function CompactActionButton({
+  label,
+  icon,
+  onClick,
+  className,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  className: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={className}
+      title={label}
+      aria-label={label}
+    >
+      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+        {icon}
+      </span>
+      <span className="text-xs font-medium">{label}</span>
     </button>
   );
 }
@@ -206,7 +337,8 @@ function MobileRemoteModal({
           <div>
             <h2 className="text-xl font-semibold text-white">Mobile Remote</h2>
             <p className="mt-1 text-sm text-slate-400">
-              Scan to open the controller on mobile and bind to this live session.
+              Scan to open the controller on mobile and bind to this live
+              session.
             </p>
           </div>
           <button
@@ -251,7 +383,9 @@ function SettingsModal({
       <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
         <div className="flex items-start justify-between border-b border-slate-800 px-5 py-4">
           <div>
-            <h2 className="text-xl font-semibold text-white">Display Settings</h2>
+            <h2 className="text-xl font-semibold text-white">
+              Display Settings
+            </h2>
             <p className="mt-1 text-sm text-slate-400">Styling and colors</p>
           </div>
           <button
@@ -338,12 +472,16 @@ function MobileMenu({
   onOpenSettings,
   onOpenAccount,
   onOpenRemote,
+  onToggleControlTheme,
+  isLightControlTheme,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onOpenSettings: () => void;
   onOpenAccount: () => void;
   onOpenRemote: () => void;
+  onToggleControlTheme: () => void;
+  isLightControlTheme: boolean;
 }) {
   if (!isOpen) return null;
 
@@ -392,9 +530,57 @@ function MobileMenu({
             <span>Account</span>
             <span className="text-xs text-slate-400">Open</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onToggleControlTheme();
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm text-white transition hover:bg-slate-800"
+          >
+            <span className="flex items-center gap-2">
+              {isLightControlTheme ? <SunIcon /> : <MoonIcon />}
+              <span>Control Theme</span>
+            </span>
+            <span className="text-xs text-slate-400">
+              {isLightControlTheme ? "Light" : "Dark"}
+            </span>
+          </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function SidePanel({
+  title,
+  subtitle,
+  children,
+  action,
+  className,
+  titleClassName,
+  subtitleClassName,
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+  className: string;
+  titleClassName: string;
+  subtitleClassName: string;
+}) {
+  return (
+    <section className={className}>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h3 className={titleClassName}>{title}</h3>
+          <p className={subtitleClassName}>{subtitle}</p>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -409,31 +595,6 @@ function formatDateTime(value: string) {
   }
 }
 
-function SidePanel({
-  title,
-  subtitle,
-  children,
-  action,
-}: {
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-  action?: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold text-white">{title}</h3>
-          <p className="mt-1 text-xs text-slate-400">{subtitle}</p>
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 export default function ControlClient({
   userEmail,
   userName,
@@ -446,7 +607,10 @@ export default function ControlClient({
   const [referenceInput, setReferenceInput] = useState("John 3:16");
   const [activeReference, setActiveReference] = useState("John 3:16");
   const [version, setVersion] = useState<BibleVersion>(initialPreferredVersion);
-  const [theme, setTheme] = useState<ThemeSettings>(initialTheme ?? DEFAULT_THEME);
+  const [theme, setTheme] = useState<ThemeSettings>(
+    initialTheme ?? DEFAULT_THEME,
+  );
+  const [controlTheme, setControlTheme] = useState<"dark" | "light">("dark");
   const [error, setError] = useState("");
   const [bundle, setBundle] = useState<PassageBundle | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -459,13 +623,17 @@ export default function ControlClient({
   const [recentPassages, setRecentPassages] = useState<string[]>([]);
   const [isDisplayConnected, setIsDisplayConnected] = useState(false);
 
-  const [history, setHistory] = useState<HistoryItem[]>(initialHistory.slice(0, 12));
+  const [history, setHistory] = useState<HistoryItem[]>(
+    initialHistory.slice(0, 12),
+  );
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>(
     initialBookmarks.slice(0, 10),
   );
   const [bookmarkLabel, setBookmarkLabel] = useState("");
   const [isSavingBookmark, setIsSavingBookmark] = useState(false);
-  const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
+  const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(
+    null,
+  );
   const [editingBookmarkLabel, setEditingBookmarkLabel] = useState("");
 
   const [freeTextTitle, setFreeTextTitle] = useState("");
@@ -482,6 +650,53 @@ export default function ControlClient({
   const preferenceSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const lastThemeSyncKeyRef = useRef("");
+
+  const isLightControlTheme = controlTheme === "light";
+
+  const shellClass = isLightControlTheme
+    ? "min-h-screen bg-slate-100 px-4 py-5 text-slate-900 sm:px-6 md:px-8"
+    : "min-h-screen bg-slate-950 px-4 py-5 text-white sm:px-6 md:px-8";
+
+  const cardClass = isLightControlTheme
+    ? "rounded-2xl border border-slate-200 bg-white"
+    : "rounded-2xl border border-slate-800 bg-slate-900";
+
+  const sidePanelClass = isLightControlTheme
+    ? "rounded-2xl border border-slate-200 bg-white p-4"
+    : "rounded-2xl border border-slate-800 bg-slate-900 p-4";
+
+  const titleTextClass = isLightControlTheme
+    ? "text-base font-semibold text-slate-900"
+    : "text-base font-semibold text-white";
+
+  const subtitleTextClass = isLightControlTheme
+    ? "mt-1 text-xs text-slate-500"
+    : "mt-1 text-xs text-slate-400";
+
+  const subtleTextClass = isLightControlTheme
+    ? "text-slate-500"
+    : "text-slate-400";
+
+  const surfaceMutedClass = isLightControlTheme
+    ? "bg-slate-50 border-slate-200"
+    : "bg-slate-950/60 border-slate-800";
+
+  const inputClass = isLightControlTheme
+    ? "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500"
+    : "w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-500";
+
+  const smallActionClass = isLightControlTheme
+    ? "rounded-lg border border-slate-300 px-2.5 py-1 text-[11px] text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+    : "rounded-lg border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 transition hover:border-slate-600 hover:bg-slate-800";
+
+  const compactActionButtonClass = isLightControlTheme
+    ? "inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 shadow-sm transition hover:bg-slate-50"
+    : "inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-slate-200 transition hover:bg-slate-800";
+
+  const compactActionGroupClass = isLightControlTheme
+    ? "flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm"
+    : "flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-2 py-1";
 
   const firstName = useMemo(() => {
     if (userName?.trim()) return userName.trim().split(/\s+/)[0];
@@ -493,11 +708,6 @@ export default function ControlClient({
     if (!nextBundle) return "";
     return `${nextBundle.translation}-${nextBundle.reference}-p${nextBundle.currentPageIndex}`;
   }, []);
-
-  const isCurrentPreviewLive = useMemo(() => {
-    if (!bundle || !liveBundleKey) return false;
-    return getBundleKey(bundle) === liveBundleKey;
-  }, [bundle, liveBundleKey, getBundleKey]);
 
   const isActivelyLive = isSessionLive && isDisplayConnected;
 
@@ -565,13 +775,15 @@ export default function ControlClient({
       const data = await response.json();
       if (response.ok && data.history) {
         setHistory(
-          data.history.map((item: HistoryItem & { openedAt: string | Date }) => ({
-            ...item,
-            openedAt:
-              typeof item.openedAt === "string"
-                ? item.openedAt
-                : new Date(item.openedAt).toISOString(),
-          })),
+          data.history.map(
+            (item: HistoryItem & { openedAt: string | Date }) => ({
+              ...item,
+              openedAt:
+                typeof item.openedAt === "string"
+                  ? item.openedAt
+                  : new Date(item.openedAt).toISOString(),
+            }),
+          ),
         );
       }
     } catch (historyError) {
@@ -697,7 +909,10 @@ export default function ControlClient({
           return null;
         }
 
-        const normalizedReference = buildReferenceLabel(parseResult.value, selected);
+        const normalizedReference = buildReferenceLabel(
+          parseResult.value,
+          selected,
+        );
 
         const nextBundle: PassageBundle = {
           reference: normalizedReference,
@@ -812,7 +1027,6 @@ export default function ControlClient({
   const navigate = useCallback(
     async (direction: "prev" | "next") => {
       if (!bundle || isLoading || isNavigating) return;
-      if (!("verses" in bundle)) return;
 
       const hasPrev = bundle.currentPageIndex > 0;
       const hasNext = bundle.currentPageIndex < bundle.pages.length - 1;
@@ -987,6 +1201,23 @@ export default function ControlClient({
     }
   }, [refreshHistory]);
 
+  const toggleControlTheme = useCallback(() => {
+    setControlTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem(CONTROL_THEME_STORAGE_KEY);
+    if (saved === "light" || saved === "dark") {
+      setControlTheme(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(CONTROL_THEME_STORAGE_KEY, controlTheme);
+  }, [controlTheme]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -1148,6 +1379,101 @@ export default function ControlClient({
   }, [getBundleKey, sessionId]);
 
   useEffect(() => {
+    if (!bundle) return;
+
+    const nextPages = paginatePassageMeasured(
+      bundle.verses,
+      theme,
+      outputViewport,
+    );
+    const nextPageIndex = Math.min(
+      bundle.currentPageIndex,
+      Math.max(0, nextPages.length - 1),
+    );
+
+    const currentPagesSignature = JSON.stringify(bundle.pages);
+    const nextPagesSignature = JSON.stringify(nextPages);
+
+    if (
+      nextPagesSignature !== currentPagesSignature ||
+      nextPageIndex !== bundle.currentPageIndex
+    ) {
+      setBundle({
+        ...bundle,
+        pages: nextPages,
+        currentPageIndex: nextPageIndex,
+      });
+    }
+  }, [theme, outputViewport, bundle]);
+
+  useEffect(() => {
+    if (!sessionId || !isSessionLive || !bundle) return;
+
+    const nextPages = paginatePassageMeasured(
+      bundle.verses,
+      theme,
+      outputViewport,
+    );
+    const nextPageIndex = Math.min(
+      bundle.currentPageIndex,
+      Math.max(0, nextPages.length - 1),
+    );
+
+    const nextBundle: PassageBundle = {
+      ...bundle,
+      pages: nextPages,
+      currentPageIndex: nextPageIndex,
+    };
+
+    const syncKey = JSON.stringify({
+      mode: "passage",
+      sessionId,
+      reference: nextBundle.reference,
+      translation: nextBundle.translation,
+      pageIndex: nextBundle.currentPageIndex,
+      theme,
+      viewport: outputViewport,
+    });
+
+    if (lastThemeSyncKeyRef.current === syncKey) return;
+    lastThemeSyncKeyRef.current = syncKey;
+
+    publishOutputState(
+      {
+        mode: "passage",
+        bundle: nextBundle,
+        theme,
+      },
+      sessionId,
+    );
+  }, [theme, outputViewport, bundle, isSessionLive, sessionId]);
+
+  useEffect(() => {
+    if (!sessionId || !isSessionLive || !freeTextContent.trim() || bundle) return;
+
+    const syncKey = JSON.stringify({
+      mode: "text",
+      sessionId,
+      title: freeTextTitle.trim(),
+      content: freeTextContent.trim(),
+      theme,
+    });
+
+    if (lastThemeSyncKeyRef.current === syncKey) return;
+    lastThemeSyncKeyRef.current = syncKey;
+
+    publishOutputState(
+      {
+        mode: "text",
+        title: freeTextTitle.trim() || undefined,
+        content: freeTextContent.trim(),
+        theme,
+      },
+      sessionId,
+    );
+  }, [theme, sessionId, isSessionLive, freeTextTitle, freeTextContent, bundle]);
+
+  useEffect(() => {
     schedulePreferenceSave(version, theme);
   }, [schedulePreferenceSave, theme, version]);
 
@@ -1175,19 +1501,31 @@ export default function ControlClient({
       : "Ready.";
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-5 text-white sm:px-6 md:px-8">
+    <main className={shellClass}>
       <div className="mx-auto max-w-7xl">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <h1
+              className={
+                isLightControlTheme
+                  ? "text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+                  : "text-2xl font-bold tracking-tight text-white sm:text-3xl"
+              }
+            >
               Scripture Display
             </h1>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className={`mt-2 text-sm ${subtleTextClass}`}>
               Welcome back, {firstName}. Your reference history, bookmarks, and
               settings are saved to your account.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/70 px-3 py-1">
+              <div
+                className={
+                  isLightControlTheme
+                    ? "inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1"
+                    : "inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/70 px-3 py-1"
+                }
+              >
                 <span
                   className={`h-2 w-2 rounded-full ${
                     isDisplayConnected ? "bg-emerald-500" : "bg-slate-500"
@@ -1195,7 +1533,11 @@ export default function ControlClient({
                 />
                 <span
                   className={`text-[11px] font-bold uppercase tracking-widest ${
-                    isDisplayConnected ? "text-emerald-400" : "text-slate-400"
+                    isDisplayConnected
+                      ? "text-emerald-400"
+                      : isLightControlTheme
+                        ? "text-slate-500"
+                        : "text-slate-400"
                   }`}
                 >
                   {isDisplayConnected
@@ -1205,39 +1547,58 @@ export default function ControlClient({
               </div>
 
               {userEmail ? (
-                <div className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-blue-300">
+                <div
+                  className={
+                    isLightControlTheme
+                      ? "inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-blue-600"
+                      : "inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-blue-300"
+                  }
+                >
                   {userEmail}
                 </div>
               ) : null}
             </div>
           </div>
 
-          <div className="hidden gap-2 xl:flex xl:shrink-0">
-            <UtilityCard
-              title="Display Settings"
-              subtitle="Theme"
-              actionLabel="Open"
-              onOpen={() => setIsSettingsModalOpen(true)}
+          <div className="hidden items-center gap-2 xl:flex xl:shrink-0">
+            <ThemeToggle
+              isLight={isLightControlTheme}
+              onToggle={toggleControlTheme}
             />
-            <UtilityCard
-              title="Mobile Remote"
-              subtitle="QR bind"
-              actionLabel="Open"
-              onOpen={() => setIsRemoteModalOpen(true)}
-            />
-            <UtilityCard
-              title="Account"
-              subtitle="Profile"
-              actionLabel="Open"
-              onOpen={() => setIsAccountModalOpen(true)}
-            />
+
+            <div className={compactActionGroupClass}>
+              <CompactActionButton
+                label="Settings"
+                icon={<SettingsIcon />}
+                onClick={() => setIsSettingsModalOpen(true)}
+                className={compactActionButtonClass}
+              />
+
+              <CompactActionButton
+                label="Remote"
+                icon={<RemoteIcon />}
+                onClick={() => setIsRemoteModalOpen(true)}
+                className={compactActionButtonClass}
+              />
+
+              <CompactActionButton
+                label="Account"
+                icon={<UserIcon />}
+                onClick={() => setIsAccountModalOpen(true)}
+                className={compactActionButtonClass}
+              />
+            </div>
           </div>
 
           <div className="xl:hidden">
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="rounded-xl border border-slate-800 bg-slate-900 p-3 text-slate-200 transition hover:bg-slate-800"
+              className={
+                isLightControlTheme
+                  ? "rounded-xl border border-slate-300 bg-white p-3 text-slate-700 transition hover:bg-slate-50"
+                  : "rounded-xl border border-slate-800 bg-slate-900 p-3 text-slate-200 transition hover:bg-slate-800"
+              }
               aria-label="Open menu"
             >
               <MenuIcon />
@@ -1247,9 +1608,13 @@ export default function ControlClient({
 
         <div className="grid gap-4 xl:grid-cols-[430px,1fr,320px]">
           <div className="space-y-4">
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
+            <section className={`${cardClass} p-4 sm:p-5`}>
               <div className="mb-4">
-                <label className="mb-2 block text-sm font-medium">
+                <label
+                  className={`mb-2 block text-sm font-medium ${
+                    isLightControlTheme ? "text-slate-800" : "text-white"
+                  }`}
+                >
                   Bible Version
                 </label>
                 <select
@@ -1261,9 +1626,13 @@ export default function ControlClient({
                       saveHistory: false,
                     })
                   }
-                  className="h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white"
+                  className={
+                    isLightControlTheme
+                      ? "h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900"
+                      : "h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white"
+                  }
                 >
-                  {["KJV", "NLT", "NIV", "AMP", "MSG"].map((v) => (
+                  {["KJV", "NLT", "NIV", "AMP", "TPT"].map((v) => (
                     <option key={v} value={v}>
                       {v}
                     </option>
@@ -1293,7 +1662,11 @@ export default function ControlClient({
                           saveHistory: true,
                         });
                       }}
-                      className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300 transition hover:bg-slate-700 hover:text-white"
+                      className={
+                        isLightControlTheme
+                          ? "rounded bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-700 transition hover:bg-slate-200 hover:text-slate-900"
+                          : "rounded bg-slate-800 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300 transition hover:bg-slate-700 hover:text-white"
+                      }
                     >
                       {ref}
                     </button>
@@ -1301,7 +1674,7 @@ export default function ControlClient({
                 </div>
               )}
 
-              <div className="mt-3 text-xs text-slate-400">{statusText}</div>
+              <div className={`mt-3 text-xs ${subtleTextClass}`}>{statusText}</div>
 
               <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
                 <Button onClick={handleLoadOnly} disabled={isLoading}>
@@ -1346,7 +1719,7 @@ export default function ControlClient({
                 </Button>
               </div>
 
-              <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+              <div className={`mt-4 rounded-xl border p-3 ${surfaceMutedClass}`}>
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <Button
                     onClick={() => void navigate("prev")}
@@ -1364,8 +1737,10 @@ export default function ControlClient({
                 </div>
               </div>
 
-              <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+              <div className={`mt-4 rounded-xl border p-3 ${surfaceMutedClass}`}>
+                <p
+                  className={`mb-3 text-xs font-bold uppercase tracking-wider ${subtleTextClass}`}
+                >
                   Bookmark Current Reference
                 </p>
                 <input
@@ -1373,7 +1748,7 @@ export default function ControlClient({
                   value={bookmarkLabel}
                   onChange={(e) => setBookmarkLabel(e.target.value)}
                   placeholder="Optional label"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-500"
+                  className={inputClass}
                 />
                 <div className="mt-3">
                   <Button
@@ -1387,7 +1762,15 @@ export default function ControlClient({
 
               <div className="mt-4 xl:hidden">
                 <div className="mb-2 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Preview</h2>
+                  <h2
+                    className={
+                      isLightControlTheme
+                        ? "text-lg font-semibold text-slate-900"
+                        : "text-lg font-semibold text-white"
+                    }
+                  >
+                    Preview
+                  </h2>
                   {isActivelyLive && (
                     <span className="animate-pulse rounded-full border border-emerald-500/30 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
                       Live
@@ -1430,7 +1813,15 @@ export default function ControlClient({
           <div className="space-y-4">
             <div className="hidden xl:block">
               <div className="mb-4 flex items-center gap-4">
-                <h2 className="text-2xl font-bold tracking-tight"></h2>
+                <h2
+                  className={
+                    isLightControlTheme
+                      ? "text-2xl font-bold tracking-tight text-slate-900"
+                      : "text-2xl font-bold tracking-tight text-white"
+                  }
+                >
+                  Preview
+                </h2>
                 {isActivelyLive && (
                   <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1">
                     <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
@@ -1450,8 +1841,10 @@ export default function ControlClient({
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <div className={`${cardClass} p-4`}>
+              <p
+                className={`mb-3 text-xs font-bold uppercase tracking-wider ${subtleTextClass}`}
+              >
                 Announcement / Info
               </p>
 
@@ -1460,7 +1853,7 @@ export default function ControlClient({
                 value={freeTextTitle}
                 onChange={(e) => setFreeTextTitle(e.target.value)}
                 placeholder="Optional title"
-                className="mb-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-500"
+                className={`${inputClass} mb-3`}
               />
 
               <textarea
@@ -1468,7 +1861,7 @@ export default function ControlClient({
                 onChange={(e) => setFreeTextContent(e.target.value)}
                 placeholder="Type announcement or information to show on output..."
                 rows={4}
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-500"
+                className={inputClass}
               />
 
               <input
@@ -1476,7 +1869,7 @@ export default function ControlClient({
                 value={freeTextBookmarkLabel}
                 onChange={(e) => setFreeTextBookmarkLabel(e.target.value)}
                 placeholder="Optional bookmark label"
-                className="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-500"
+                className={`${inputClass} mt-3`}
               />
 
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -1505,20 +1898,27 @@ export default function ControlClient({
                 <button
                   type="button"
                   onClick={() => void handleClearHistory()}
-                  className="rounded-lg border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 transition hover:border-slate-600 hover:bg-slate-800"
+                  className={smallActionClass}
                 >
                   Clear
                 </button>
               }
+              className={sidePanelClass}
+              titleClassName={titleTextClass}
+              subtitleClassName={subtitleTextClass}
             >
               {history.length === 0 ? (
-                <p className="text-sm text-slate-400">No history yet.</p>
+                <p className={`text-sm ${subtleTextClass}`}>No history yet.</p>
               ) : (
                 <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
                   {history.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-xl border border-slate-800 bg-slate-950/80 p-2.5"
+                      className={
+                        isLightControlTheme
+                          ? "rounded-xl border border-slate-200 bg-slate-50 p-2.5"
+                          : "rounded-xl border border-slate-800 bg-slate-950/80 p-2.5"
+                      }
                     >
                       <button
                         type="button"
@@ -1526,7 +1926,8 @@ export default function ControlClient({
                           setReferenceInput(item.reference);
                           void loadPassage(item.reference, {
                             autoSend: true,
-                            overrideVersion: (item.version || version) as BibleVersion,
+                            overrideVersion: (item.version ||
+                              version) as BibleVersion,
                             saveHistory: true,
                           });
                         }}
@@ -1534,14 +1935,22 @@ export default function ControlClient({
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-slate-100">
+                            <p
+                              className={
+                                isLightControlTheme
+                                  ? "truncate text-sm font-semibold text-slate-900"
+                                  : "truncate text-sm font-semibold text-slate-100"
+                              }
+                            >
                               {item.reference}
                             </p>
-                            <p className="mt-1 text-xs text-emerald-300">
+                            <p className="mt-1 text-xs text-emerald-400">
                               {item.version || "Unknown version"}
                             </p>
                           </div>
-                          <span className="shrink-0 text-[10px] uppercase tracking-wider text-slate-500">
+                          <span
+                            className={`shrink-0 text-[10px] uppercase tracking-wider ${subtleTextClass}`}
+                          >
                             {formatDateTime(item.openedAt)}
                           </span>
                         </div>
@@ -1551,7 +1960,11 @@ export default function ControlClient({
                         <button
                           type="button"
                           onClick={() => void handleDeleteHistoryItem(item.id)}
-                          className="rounded-lg border border-slate-700 p-1.5 text-slate-300 transition hover:bg-slate-800"
+                          className={
+                            isLightControlTheme
+                              ? "rounded-lg border border-slate-300 p-1.5 text-slate-600 transition hover:bg-slate-100"
+                              : "rounded-lg border border-slate-700 p-1.5 text-slate-300 transition hover:bg-slate-800"
+                          }
                           title="Hide from my history"
                           aria-label="Hide from my history"
                         >
@@ -1567,15 +1980,22 @@ export default function ControlClient({
             <SidePanel
               title="Bookmarks"
               subtitle="Saved references for quick return. Max 10 shown."
+              className={sidePanelClass}
+              titleClassName={titleTextClass}
+              subtitleClassName={subtitleTextClass}
             >
               {bookmarks.length === 0 ? (
-                <p className="text-sm text-slate-400">No bookmarks yet.</p>
+                <p className={`text-sm ${subtleTextClass}`}>No bookmarks yet.</p>
               ) : (
                 <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
                   {bookmarks.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-xl border border-slate-800 bg-slate-950/80 p-2.5"
+                      className={
+                        isLightControlTheme
+                          ? "rounded-xl border border-slate-200 bg-slate-50 p-2.5"
+                          : "rounded-xl border border-slate-800 bg-slate-950/80 p-2.5"
+                      }
                     >
                       <button
                         type="button"
@@ -1583,18 +2003,29 @@ export default function ControlClient({
                           setReferenceInput(item.reference);
                           void loadPassage(item.reference, {
                             autoSend: true,
-                            overrideVersion: (item.version || version) as BibleVersion,
+                            overrideVersion: (item.version ||
+                              version) as BibleVersion,
                             saveHistory: true,
                           });
                         }}
                         className="w-full text-left"
                       >
-                        <p className="text-sm font-semibold text-slate-100">
+                        <p
+                          className={
+                            isLightControlTheme
+                              ? "text-sm font-semibold text-slate-900"
+                              : "text-sm font-semibold text-slate-100"
+                          }
+                        >
                           {item.label || item.reference}
                         </p>
-                        <p className="mt-1 text-xs text-blue-300">
-                          {item.label ? item.reference : item.version || "Unknown version"}
-                          {item.label && item.version ? ` • ${item.version}` : ""}
+                        <p className="mt-1 text-xs text-blue-400">
+                          {item.label
+                            ? item.reference
+                            : item.version || "Unknown version"}
+                          {item.label && item.version
+                            ? ` • ${item.version}`
+                            : ""}
                         </p>
                       </button>
 
@@ -1607,13 +2038,17 @@ export default function ControlClient({
                               onChange={(e) =>
                                 setEditingBookmarkLabel(e.target.value)
                               }
-                              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none focus:border-blue-500"
+                              className={
+                                isLightControlTheme
+                                  ? "w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-500"
+                                  : "w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-white outline-none focus:border-blue-500"
+                              }
                               placeholder="Bookmark label"
                             />
                             <button
                               type="button"
                               onClick={() => void handleEditBookmarkSave()}
-                              className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800"
+                              className={smallActionClass}
                             >
                               Save
                             </button>
@@ -1623,7 +2058,7 @@ export default function ControlClient({
                                 setEditingBookmarkId(null);
                                 setEditingBookmarkLabel("");
                               }}
-                              className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800"
+                              className={smallActionClass}
                             >
                               Cancel
                             </button>
@@ -1633,7 +2068,11 @@ export default function ControlClient({
                             <button
                               type="button"
                               onClick={() => handleEditBookmarkStart(item)}
-                              className="rounded-lg border border-slate-700 p-1.5 text-slate-300 transition hover:bg-slate-800"
+                              className={
+                                isLightControlTheme
+                                  ? "rounded-lg border border-slate-300 p-1.5 text-slate-600 transition hover:bg-slate-100"
+                                  : "rounded-lg border border-slate-700 p-1.5 text-slate-300 transition hover:bg-slate-800"
+                              }
                               title="Edit bookmark"
                               aria-label="Edit bookmark"
                             >
@@ -1666,6 +2105,8 @@ export default function ControlClient({
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         onOpenAccount={() => setIsAccountModalOpen(true)}
         onOpenRemote={() => setIsRemoteModalOpen(true)}
+        onToggleControlTheme={toggleControlTheme}
+        isLightControlTheme={isLightControlTheme}
       />
 
       <SettingsModal
