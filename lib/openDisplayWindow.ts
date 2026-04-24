@@ -9,8 +9,14 @@ function getPopupFeatures() {
     return `popup=yes,width=${DEFAULT_WIDTH},height=${DEFAULT_HEIGHT}`;
   }
 
-  const width = Math.min(DEFAULT_WIDTH, Math.max(1000, window.screen.availWidth - 80));
-  const height = Math.min(DEFAULT_HEIGHT, Math.max(700, window.screen.availHeight - 120));
+  const width = Math.min(
+    DEFAULT_WIDTH,
+    Math.max(1000, window.screen.availWidth - 80),
+  );
+  const height = Math.min(
+    DEFAULT_HEIGHT,
+    Math.max(700, window.screen.availHeight - 120),
+  );
   const left = Math.max(20, window.screen.availWidth - width - 20);
   const top = 40;
 
@@ -30,17 +36,17 @@ export function openDisplayWindow(sessionId: string) {
 
   writeDisplaySessionBinding(sessionId);
 
-  const popup = window.open("/display", DISPLAY_POPUP_NAME, getPopupFeatures());
+  const popup = window.open(
+    `/display?session=${encodeURIComponent(sessionId)}`,
+    DISPLAY_POPUP_NAME,
+    getPopupFeatures(),
+  );
 
   if (!popup) return null;
 
   try {
     popup.focus();
-    popup.resizeTo?.(Math.min(DEFAULT_WIDTH, window.screen.availWidth - 40), Math.min(DEFAULT_HEIGHT, window.screen.availHeight - 80));
-    popup.moveTo?.(Math.max(0, window.screen.availWidth - Math.min(DEFAULT_WIDTH, window.screen.availWidth - 40) - 20), 20);
-  } catch {
-    // Browser may block resize/move; popup still works.
-  }
+  } catch {}
 
   return popup;
 }

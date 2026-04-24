@@ -3,8 +3,9 @@ export type Verse = {
   chapter: number;
   verse: number;
   text: string;
+  label?: string;
+  endVerse?: number;
 };
-
 export type BookMeta = {
   name: string;
   slug: string;
@@ -12,7 +13,14 @@ export type BookMeta = {
   chapters?: number;
 };
 
-export type BibleVersion = "KJV" | "NLT" | "NIV" | "AMP" | "MSG";
+export type BibleVersion =
+  | "KJV"
+  | "NLT"
+  | "NIV"
+  | "AMP"
+  | "MSG"
+  | "NKJV"
+  | "TPT";
 
 export type ParsedReference = {
   book: string;
@@ -56,6 +64,12 @@ export type OutputState =
   | {
       mode: "passage";
       bundle: PassageBundle;
+      theme: ThemeSettings;
+    }
+  | {
+      mode: "text";
+      title?: string;
+      content: string;
       theme: ThemeSettings;
     }
   | {

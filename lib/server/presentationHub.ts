@@ -1,126 +1,66 @@
 import type { OutputState } from "@/types/scripture";
-
-export type OutputViewport = { width: number; height: number };
-
-export type PresentationCommand = {
-  id: string;
-  type: "toggle-fullscreen";
-  source?: "control" | "display" | "remote";
-  createdAt: number;
-};
+import type { OutputViewport, PresentationCommand } from "@/lib/syncOutput";
 
 export type PresentationSnapshot = {
   state: OutputState | null;
   viewport: OutputViewport | null;
   lastCommand: PresentationCommand | null;
+  updatedAt: number;
+  presenceTs: number | null;
 };
 
-export type PresentationEvent =
-  | { type: "state"; payload: OutputState }
-  | { type: "viewport"; payload: OutputViewport }
-  | { type: "command"; payload: PresentationCommand }
-  | { type: "snapshot"; payload: PresentationSnapshot }
-  | { type: "ping"; payload: { time: number } };
-
-type Subscriber = (event: PresentationEvent) => void;
-
-type Hub = {
-  state: OutputState | null;
-  viewport: OutputViewport | null;
-  lastCommand: PresentationCommand | null;
-  subscribers: Set<Subscriber>;
-};
-
-type Hubs = Map<string, Hub>;
+type HubStore = Map<string, PresentationSnapshot>;
 
 declare global {
   // eslint-disable-next-line no-var
-  var __presentationHubs: Hubs | undefined;
+  var __presentationHubStore__: HubStore | undefined;
 }
 
-function getHubs(): Hubs {
-  if (!globalThis.__presentationHubs) {
-    globalThis.__presentationHubs = new Map<string, Hub>();
+function getStore(): HubStore {
+  if (!globalThis.__presentationHubStore__) {
+    globalThis.__presentationHubStore__ = new Map();
   }
 
-  return globalThis.__presentationHubs;
-}
-
-function getHub(sessionId: string): Hub {
-  const hubs = getHubs();
-
-  if (!hubs.has(sessionId)) {
-    hubs.set(sessionId, {
-      state: null,
-      viewport: null,
-      lastCommand: null,
-      subscribers: new Set(),
-    });
-  }
-
-  return hubs.get(sessionId)!;
+  return globalThis.__presentationHubStore__;
 }
 
 export function getPresentationSnapshot(
   sessionId: string,
+): PresentationSnapshot | null {
+  return getStore().get(sessionId) ?? null;
+}
+
+export function updatePresentationSnapshot(
+  sessionId: string,
+  update: {
+    state?: OutputState;
+    viewport?: OutputViewport;
+    command?: PresentationCommand;
+    presence?: boolean;
+  },
 ): PresentationSnapshot {
-  const hub = getHub(sessionId);
+  const store = getStore();
 
-  return {
-    state: hub.state,
-    viewport: hub.viewport,
-    lastCommand: hub.lastCommand,
+  const current =
+    store.get(sessionId) ??
+    ({
+      state: null,
+      viewport: null,
+      lastCommand: null,
+      updatedAt: Date.now(),
+      presenceTs: null,
+    } satisfies PresentationSnapshot);
+
+  const next: PresentationSnapshot = {
+    state: update.state !== undefined ? update.state : current.state,
+    viewport:
+      update.viewport !== undefined ? update.viewport : current.viewport,
+    lastCommand:
+      update.command !== undefined ? update.command : current.lastCommand,
+    updatedAt: Date.now(),
+    presenceTs: update.presence === true ? Date.now() : current.presenceTs,
   };
-}
 
-export function updatePresentationState(
-  sessionId: string,
-  state: OutputState,
-) {
-  const hub = getHub(sessionId);
-  hub.state = state;
-  broadcastPresentationEvent(sessionId, { type: "state", payload: state });
-}
-
-export function updatePresentationViewport(
-  sessionId: string,
-  viewport: OutputViewport,
-) {
-  const hub = getHub(sessionId);
-  hub.viewport = viewport;
-  broadcastPresentationEvent(sessionId, { type: "viewport", payload: viewport });
-}
-
-export function publishPresentationCommand(
-  sessionId: string,
-  command: PresentationCommand,
-) {
-  const hub = getHub(sessionId);
-  hub.lastCommand = command;
-  broadcastPresentationEvent(sessionId, { type: "command", payload: command });
-}
-
-export function subscribeToPresentationEvents(
-  sessionId: string,
-  subscriber: Subscriber,
-) {
-  const hub = getHub(sessionId);
-  hub.subscribers.add(subscriber);
-
-  return () => {
-    hub.subscribers.delete(subscriber);
-  };
-}
-
-export function broadcastPresentationEvent(
-  sessionId: string,
-  event: PresentationEvent,
-) {
-  const hub = getHub(sessionId);
-
-  for (const subscriber of hub.subscribers) {
-    try {
-      subscriber(event);
-    } catch {}
-  }
+  store.set(sessionId, next);
+  return next;
 }

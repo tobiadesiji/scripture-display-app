@@ -96,7 +96,7 @@ export default function DisplayCanvas({
         : "rgba(255,255,255,0.08)",
   };
 
-  const verseTextStyle = {
+  const textStyle = {
     fontFamily: getFontFamily(state.theme.fontFamily),
     textShadow: getTextShadow(state.theme.textShadow),
     WebkitTextStroke: getTextStroke(state.theme.textOutline),
@@ -112,6 +112,44 @@ export default function DisplayCanvas({
       {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
     </button>
   );
+
+  if (state.mode === "text") {
+    return (
+      <div
+        className="relative h-screen w-screen overflow-hidden"
+        style={{ backgroundColor, color: textColor }}
+      >
+        {fullscreenButton}
+
+        <div className="flex h-full w-full items-center justify-center px-10 py-12">
+          <div
+            className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center text-center"
+            style={{
+              textAlign: state.theme.textAlign,
+              lineHeight: state.theme.lineHeight,
+              ...textStyle,
+            }}
+          >
+            {state.title ? (
+              <p
+                className="mb-6 text-[0.42em] font-bold uppercase tracking-[0.24em] opacity-80"
+                style={{ fontSize: `${state.theme.fontSize}px` }}
+              >
+                {state.title}
+              </p>
+            ) : null}
+
+            <div
+              className="whitespace-pre-wrap font-bold"
+              style={{ fontSize: `${state.theme.fontSize}px` }}
+            >
+              {state.content}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (state.mode !== "passage") {
     return (
@@ -152,7 +190,7 @@ export default function DisplayCanvas({
     >
       {fullscreenButton}
 
-      <div className="h-full w-full px-10 pt-8 pb-8">
+      <div className="h-full w-full px-10 pb-8 pt-8">
         <div className="mx-auto grid h-full max-w-6xl grid-rows-[auto_1fr_auto] gap-6">
           <div className="flex justify-end">
             <div
@@ -171,18 +209,18 @@ export default function DisplayCanvas({
                 lineHeight: state.theme.lineHeight,
                 fontSize: `${state.theme.fontSize}px`,
                 paddingBottom: `${FOOTER_SAFE_SPACE}px`,
-                ...verseTextStyle,
+                ...textStyle,
               }}
             >
               <div className="w-full max-w-5xl">
                 <div className="space-y-4">
                   {currentPage.map((verse, index) => (
                     <p
-                      key={`${verse.chapter}-${verse.verse}-${index}`}
+                      key={`${verse.chapter}-${verse.verse}-${verse.label ?? ""}-${index}`}
                       className="font-bold"
                     >
                       <sup className="mr-2 text-[0.55em] font-bold opacity-80">
-                        {verse.verse}
+                        {verse.label ?? verse.verse}
                       </sup>
                       {verse.text}
                     </p>
@@ -196,7 +234,7 @@ export default function DisplayCanvas({
             {state.theme.showReference ? (
               <p
                 className="absolute bottom-0 left-0 text-[0.85em] uppercase tracking-[0.2em] opacity-75"
-                style={verseTextStyle}
+                style={textStyle}
               >
                 {state.bundle.reference} · {state.bundle.translation} · Page{" "}
                 {state.bundle.currentPageIndex + 1}/{state.bundle.pages.length}

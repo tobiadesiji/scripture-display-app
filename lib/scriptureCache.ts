@@ -2,19 +2,22 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { BibleVersion, Verse } from "@/types/scripture";
 
+export type CacheSource = "nlt" | "api-bible" | "youversion";
+
 type CacheEntry = {
   version: BibleVersion;
   book: string;
   chapter: number;
   verses: Verse[];
   fetchedAt: string;
-  source: "nlt" | "api-bible";
+  source: CacheSource;
 };
 
 const memoryCache = new Map<string, CacheEntry>();
 
 const CACHE_ROOT =
-  process.env.SCRIPTURE_CACHE_DIR || path.join(process.cwd(), "data", "scripture-cache");
+  process.env.SCRIPTURE_CACHE_DIR ||
+  path.join(process.cwd(), "data", "scripture-cache");
 
 function sanitizeSegment(value: string) {
   return value
@@ -76,13 +79,26 @@ export async function readChapterCache(
 }
 
 export async function writeChapterCache(entry: CacheEntry): Promise<void> {
-  const key = makeChapterKey(entry.version, entry.book, entry.chapter);
-  const filePath = makeCacheFilePath(entry.version, entry.book, entry.chapter);
+  const normalizedEntry: CacheEntry = {
+    ...entry,
+    verses: [...entry.verses].sort((a, b) => a.verse - b.verse),
+  };
 
-  memoryCache.set(key, entry);
+  const key = makeChapterKey(
+    normalizedEntry.version,
+    normalizedEntry.book,
+    normalizedEntry.chapter,
+  );
+  const filePath = makeCacheFilePath(
+    normalizedEntry.version,
+    normalizedEntry.book,
+    normalizedEntry.chapter,
+  );
+
+  memoryCache.set(key, normalizedEntry);
 
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(entry, null, 2), "utf8");
+  await fs.writeFile(filePath, JSON.stringify(normalizedEntry, null, 2), "utf8");
 }
 
 export async function getCachedVersesForReference(
@@ -104,7 +120,7 @@ export function setMemoryChapterCache(
   book: string,
   chapter: number,
   verses: Verse[],
-  source: "nlt" | "api-bible",
+  source: CacheSource,
 ) {
   const entry: CacheEntry = {
     version,

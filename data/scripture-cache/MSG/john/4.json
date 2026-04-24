@@ -1,0 +1,63 @@
+{
+  "version": "MSG",
+  "book": "John",
+  "chapter": 4,
+  "verses": [
+    {
+      "chapter": 4,
+      "verse": 7,
+      "label": "7-8A",
+      "text": "woman, a Samaritan, came to draw water. Jesus said, “Would you give me a drink of water?” (His disciples had gone to the village to buy food for lunch.) 9The Samaritan woman, taken aback, asked, “How come you, a Jew, are asking me, a Samaritan woman, for a drink?” (Jews in those days wouldn’t be caught dead talking to Samaritans.) 10Jesus answered, “If you knew the generosity of God and who I am, you would be asking me for a drink, and I would give you fresh, living water.” 11-12The woman said, “Sir, you don’t even have a bucket to draw with, and this well is deep. So how are you going to get this ‘living water’? Are you a better man than our ancestor Jacob, who dug this well and drank from it, he and his sons and livestock, and passed it down to us?” 13-14Jesus said, “Everyone who drinks this water will get thirsty again and again. Anyone who drinks the water I give will never thirst—not ever. The water I give will be an artesian spring within, gushing fountains of endless life.” 15The woman said, “Sir, give me this water so I won’t ever get thirsty, won’t ever have to come back to this well again!” 16He said, “Go call your husband and then come back.”"
+    },
+    {
+      "chapter": 4,
+      "verse": 17,
+      "label": "17-18",
+      "text": "“I have no husband,” she said. “That’s nicely put: ‘I have no husband.’ You’ve had five husbands, and the man you’re living with now isn’t even your husband. You spoke the truth there, sure enough.”"
+    },
+    {
+      "chapter": 4,
+      "verse": 19,
+      "label": "19-20",
+      "text": "“Oh, so you’re a prophet! Well, tell me this: Our ancestors worshiped God at this mountain, but you Jews insist that Jerusalem is the only place for worship, right?”"
+    },
+    {
+      "chapter": 4,
+      "verse": 21,
+      "label": "21-23a",
+      "text": "“Believe me, woman, the time is coming when you Samaritans will worship the Father neither here at this mountain nor there in Jerusalem. You worship guessing in the dark; we Jews worship in the clear light of day. God’s way of salvation is made available through the Jews. But the time is coming—it has, in fact, come—when what you’re called will not matter and where you go to worship will not matter."
+    },
+    {
+      "chapter": 4,
+      "verse": 23,
+      "label": "23b-24",
+      "text": "“It’s who you are and the way you live that count before God. Your worship must engage your spirit in the pursuit of truth. That’s the kind of people the Father is out looking for: those who are simply and honestly themselves before him in their worship. God is sheer being itself—Spirit. Those who worship him must do it out of their very being, their spirits, their true selves, in adoration.” 25The woman said, “I don’t know about that. I do know that the Messiah is coming. When he arrives, we’ll get the whole story.”"
+    },
+    {
+      "chapter": 4,
+      "verse": 26,
+      "label": "26",
+      "text": "“I am he,” said Jesus. “You don’t have to wait any longer or look any further.” 27Just then his disciples came back. They were shocked. They couldn’t believe he was talking with that kind of a woman. No one said what they were all thinking, but their faces showed it. 28-30The woman took the hint and left. In her confusion she left her water pot. Back in the village she told the people, “Come see a man who knew all about the things I did, who knows me inside and out. Do you think this could be the Messiah?” And they went out to see for themselves. It’s Harvest Time 31In the meantime, the disciples pressed him, “Rabbi, eat. Aren’t you going to eat?” 32He told them, “I have food to eat you know nothing about.” 33The disciples were puzzled. “Who could have brought him food?” 34-35Jesus said, “The food that keeps me going is that I do the will of the One who sent me, finishing the work he started. As you look around right now, wouldn’t you say that in about four months it will be time to harvest? Well, I’m telling you to open your eyes and take a good look at what’s right in front of you. These Samaritan fields are ripe. It’s harvest time!"
+    },
+    {
+      "chapter": 4,
+      "verse": 36,
+      "label": "36-38",
+      "text": "“The Harvester isn’t waiting. He’s taking his pay, gathering in this grain that’s ripe for eternal life. Now the Sower is arm in arm with the Harvester, triumphant. That’s the truth of the saying, ‘This one sows, that one harvests.’ I sent you to harvest a field you never worked. Without lifting a finger, you have walked in on a field worked long and hard by others.” 39-42Many of the Samaritans from that village committed themselves to him because of the woman’s witness: “He knew all about the things I did. He knows me inside and out!” They asked him to stay on, so Jesus stayed two days. A lot more people entrusted their lives to him when they heard what he had to say. They said to the woman, “We’re no longer taking this on your say-so. We’ve heard it for ourselves and know it for sure. He’s the Savior of the world!” * * * 43-45After the two days he left for Galilee. Now, Jesus knew well from experience that a prophet is not respected in the place where he grew up. So when he arrived in Galilee, the Galileans welcomed him, but only because they were impressed with what he had done in Jerusalem during the Passover Feast, not that they really had a clue about who he was or what he was up to. 46-48Now he was back in Cana of Galilee, the place where he made the water into wine. Meanwhile in Capernaum, there was a certain official from the king’s court whose son was sick. When he heard that Jesus had come from Judea to Galilee, he went and asked that he come down and heal his son, who was on the brink of death. Jesus put him off: “Unless you people are dazzled by a miracle, you refuse to believe.” 49But the court official wouldn’t be put off. “Come down! It’s life or death for my son.” 50-51Jesus simply replied, “Go home. Your son lives.” The man believed the bare word Jesus spoke and headed home. On his way back, his servants intercepted him and announced, “Your son lives!”"
+    },
+    {
+      "chapter": 4,
+      "verse": 52,
+      "label": "52-53a",
+      "text": "He asked them what time he began to get better. They said, “The fever broke yesterday afternoon at one o’clock.” The father knew that that was the very moment Jesus had said, “Your son lives.”"
+    },
+    {
+      "chapter": 4,
+      "verse": 53,
+      "label": "53b-54",
+      "text": "That settled it. Not only he but his entire household believed. This was now the second sign Jesus gave after having come from Judea into Galilee."
+    }
+  ],
+  "fetchedAt": "2026-04-22T23:08:32.551Z",
+  "source": "api-bible"
+}

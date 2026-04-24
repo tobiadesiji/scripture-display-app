@@ -45,16 +45,16 @@ export default function PreviewPanel({ bundle, error }: Props) {
         <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
           <div className="space-y-4 text-slate-100">
             {currentPage.map((verse) => (
-              <p
-                key={`${verse.book ?? "book"}-${verse.chapter}-${verse.verse}`}
-                className="text-lg leading-8"
-              >
-                <span className="mr-2 align-top text-sm font-semibold text-slate-400">
-                  {verse.verse}
-                </span>
-                <span>{verse.text}</span>
-              </p>
-            ))}
+  <p
+    key={`${verse.chapter}-${verse.verse}-${verse.label ?? ""}`}
+    className="text-lg leading-8"
+  >
+    <span className="mr-2 align-top text-sm font-semibold text-slate-400">
+      {verse.label ?? verse.verse}
+    </span>
+    <span>{verse.text}</span>
+  </p>
+))}
           </div>
         </div>
       ) : null}

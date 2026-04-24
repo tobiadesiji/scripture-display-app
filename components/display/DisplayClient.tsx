@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DisplayCanvas from "./DisplayCanvas";
 import {
   readDisplaySessionBinding,
@@ -9,25 +9,73 @@ import {
   subscribeToOutputState,
   subscribeToPresentationCommands,
   writeDisplayPresence,
+  writeDisplaySessionBinding,
+  postDisplayPresence,
 } from "@/lib/syncOutput";
 import type { OutputState } from "@/types/scripture";
 
-export default function DisplayClient() {
-  const [sessionId, setSessionId] = useState("");
+type DisplayClientProps = {
+  forcedSessionId?: string;
+};
+
+export default function DisplayClient({ forcedSessionId }: DisplayClientProps) {
+  const initialQuerySessionId = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("session") || "";
+  }, []);
+
+  const [sessionId, setSessionId] = useState(
+    forcedSessionId || initialQuerySessionId || readDisplaySessionBinding() || "",
+  );
   const [state, setState] = useState<OutputState | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    const boundSessionId = readDisplaySessionBinding();
-    if (boundSessionId) {
-      setSessionId(boundSessionId);
-    }
+    if (typeof window === "undefined") return;
+
+    const querySessionId =
+      forcedSessionId ||
+      new URLSearchParams(window.location.search).get("session")?.trim() ||
+      "";
+
+    if (!querySessionId) return;
+
+    writeDisplaySessionBinding(querySessionId);
+    setSessionId(querySessionId);
+
+    window.history.replaceState({}, "", "/display");
+  }, [forcedSessionId]);
+
+  useEffect(() => {
+    const resolveBinding = () => {
+      if (forcedSessionId) {
+        setSessionId(forcedSessionId);
+        return;
+      }
+
+      const boundSessionId = readDisplaySessionBinding();
+      if (boundSessionId) {
+        setSessionId(boundSessionId);
+      }
+    };
+
+    resolveBinding();
+
+    const onFocus = () => resolveBinding();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [forcedSessionId]);
+
+  useEffect(() => {
+    if (forcedSessionId || initialQuerySessionId) return;
 
     return subscribeToDisplaySessionBinding((nextSessionId) => {
-      setSessionId(nextSessionId);
-      setState(nextSessionId ? readStoredOutputState(nextSessionId) : null);
+      setSessionId(nextSessionId || "");
     });
-  }, []);
+  }, [forcedSessionId, initialQuerySessionId]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -35,45 +83,65 @@ export default function DisplayClient() {
       return;
     }
 
+    writeDisplayPresence(sessionId);
+    void postDisplayPresence(sessionId);
+
     const stored = readStoredOutputState(sessionId);
     if (stored) {
       setState(stored);
     }
 
-    return subscribeToOutputState(sessionId, (nextState) => {
+    const stopOutput = subscribeToOutputState(sessionId, (nextState) => {
       setState(nextState);
+      writeDisplayPresence(sessionId);
+      void postDisplayPresence(sessionId);
     });
-  }, [sessionId]);
 
-  useEffect(() => {
-    if (!sessionId) return;
-
-    return subscribeToPresentationCommands(sessionId, async (command) => {
-      if (command.type !== "toggle-fullscreen") return;
-
-      try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen();
-        } else {
-          await document.exitFullscreen();
-        }
-      } catch {}
+    const stopCommands = subscribeToPresentationCommands(sessionId, (command) => {
+      if (command.type === "toggle-fullscreen") {
+        setIsFullscreen((prev) => !prev);
+      }
+      writeDisplayPresence(sessionId);
+      void postDisplayPresence(sessionId);
     });
-  }, [sessionId]);
-
-  useEffect(() => {
-    if (!sessionId) return;
-
-    writeDisplayPresence(sessionId);
 
     const interval = window.setInterval(() => {
       writeDisplayPresence(sessionId);
+      void postDisplayPresence(sessionId);
     }, 3000);
 
     return () => {
+      stopOutput();
+      stopCommands();
       window.clearInterval(interval);
     };
   }, [sessionId]);
+
+  useEffect(() => {
+    const element = document.documentElement;
+
+    const enterFullscreen = async () => {
+      if (!document.fullscreenElement) {
+        try {
+          await element.requestFullscreen();
+        } catch {}
+      }
+    };
+
+    const exitFullscreen = async () => {
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch {}
+      }
+    };
+
+    if (isFullscreen) {
+      void enterFullscreen();
+    } else {
+      void exitFullscreen();
+    }
+  }, [isFullscreen]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -86,22 +154,12 @@ export default function DisplayClient() {
     };
   }, []);
 
-  const handleToggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch {}
-  };
-
   return (
     <DisplayCanvas
       state={state}
       isFullscreen={isFullscreen}
-      onToggleFullscreen={handleToggleFullscreen}
       sessionId={sessionId}
+      onToggleFullscreen={() => setIsFullscreen((prev) => !prev)}
     />
   );
 }

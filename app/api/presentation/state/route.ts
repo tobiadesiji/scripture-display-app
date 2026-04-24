@@ -1,53 +1,56 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   getPresentationSnapshot,
-  publishPresentationCommand,
-  updatePresentationState,
-  updatePresentationViewport,
-  type OutputViewport,
-  type PresentationCommand,
+  updatePresentationSnapshot,
 } from "@/lib/server/presentationHub";
 import type { OutputState } from "@/types/scripture";
-
-export const runtime = "nodejs";
+import type { OutputViewport, PresentationCommand } from "@/lib/syncOutput";
 
 type Body = {
   sessionId?: string;
   state?: OutputState;
   viewport?: OutputViewport;
   command?: PresentationCommand;
+  presence?: boolean;
 };
 
-function getSessionIdFromUrl(request: Request) {
-  const url = new URL(request.url);
-  return (url.searchParams.get("sessionId") ?? "main").trim() || "main";
+export async function GET(request: NextRequest) {
+  const sessionId = request.nextUrl.searchParams.get("sessionId")?.trim();
+
+  if (!sessionId) {
+    return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+  }
+
+  const snapshot = getPresentationSnapshot(sessionId);
+
+  return NextResponse.json(
+    snapshot ?? {
+      state: null,
+      viewport: null,
+      lastCommand: null,
+      updatedAt: Date.now(),
+      presenceTs: null,
+    },
+  );
 }
 
-export async function GET(request: Request) {
-  const sessionId = getSessionIdFromUrl(request);
-
-  return NextResponse.json(getPresentationSnapshot(sessionId));
-}
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const body = (await request.json()) as Body;
-  const sessionId = (body.sessionId ?? "main").trim() || "main";
+  const sessionId = body.sessionId?.trim();
 
-  if (body.state) {
-    updatePresentationState(sessionId, body.state);
+  if (!sessionId) {
+    return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
   }
 
-  if (body.viewport) {
-    updatePresentationViewport(sessionId, body.viewport);
-  }
-
-  if (body.command) {
-    publishPresentationCommand(sessionId, body.command);
-  }
+  const snapshot = updatePresentationSnapshot(sessionId, {
+    state: body.state,
+    viewport: body.viewport,
+    command: body.command,
+    presence: body.presence,
+  });
 
   return NextResponse.json({
     ok: true,
-    sessionId,
-    snapshot: getPresentationSnapshot(sessionId),
+    snapshot,
   });
 }

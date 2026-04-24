@@ -1,10 +1,14 @@
 import type { BibleVersion, ParsedReference, Verse } from "@/types/scripture";
 import { loadBible } from "./loadBible";
-import { fetchNltVerses } from "./nltApi";
-import { fetchApiBibleVerses } from "./apiBible";
 
 type AdjacentResult = {
   reference: string;
+};
+
+type ScriptureApiResponse = {
+  ok: boolean;
+  verses?: Verse[];
+  error?: string;
 };
 
 function formatReference(book: string, chapter: number, verse: number) {
@@ -16,14 +20,6 @@ async function fetchChapterVerses(
   parsed: ParsedReference,
 ): Promise<Verse[]> {
   const chapterReference = `${parsed.book} ${parsed.chapter}`;
-
-  if (version === "NLT") {
-    return fetchNltVerses(version, chapterReference, {
-      ...parsed,
-      startVerse: undefined,
-      endVerse: undefined,
-    });
-  }
 
   if (version === "KJV") {
     const verses = await loadBible();
@@ -37,11 +33,61 @@ async function fetchChapterVerses(
       .sort((a, b) => a.verse - b.verse);
   }
 
-  return fetchApiBibleVerses(version, chapterReference, {
-    ...parsed,
-    startVerse: undefined,
-    endVerse: undefined,
+  const response = await fetch("/api/api-bible", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      version,
+      reference: chapterReference,
+      parsed: {
+        ...parsed,
+        startVerse: undefined,
+        endVerse: undefined,
+      },
+    }),
   });
+
+  const data = (await response.json()) as ScriptureApiResponse;
+
+  if (!response.ok || !data.ok || !data.verses?.length) {
+    return [];
+  }
+
+  return [...data.verses].sort((a, b) => a.verse - b.verse);
+}
+
+function getBlockEnd(verses: Verse[], index: number): number {
+  const current = verses[index];
+  if (!current) return Number.POSITIVE_INFINITY;
+
+  if (typeof current.endVerse === "number") {
+    return current.endVerse;
+  }
+
+  const next = verses[index + 1];
+  return next ? next.verse - 1 : Number.POSITIVE_INFINITY;
+}
+
+function findCurrentIndex(
+  verses: Verse[],
+  parsed: ParsedReference,
+  version: BibleVersion,
+): number {
+  const currentVerse = parsed.startVerse ?? 1;
+
+  if (version === "MSG") {
+    const exactIndex = verses.findIndex((verse) => verse.verse === currentVerse);
+    if (exactIndex !== -1) return exactIndex;
+
+    return verses.findIndex((verse, index) => {
+      const blockEnd = getBlockEnd(verses, index);
+      return verse.verse <= currentVerse && blockEnd >= currentVerse;
+    });
+  }
+
+  return verses.findIndex((verse) => verse.verse === currentVerse);
 }
 
 export async function getAdjacentVerseReference(
@@ -49,22 +95,21 @@ export async function getAdjacentVerseReference(
   version: BibleVersion,
   direction: "prev" | "next",
 ): Promise<AdjacentResult | null> {
-  const currentVerse = parsed.startVerse ?? 1;
-
   const currentChapterVerses = await fetchChapterVerses(version, parsed);
   if (!currentChapterVerses.length) return null;
 
-  const currentIndex = currentChapterVerses.findIndex(
-    (verse) => verse.verse === currentVerse,
-  );
-
+  const currentIndex = findCurrentIndex(currentChapterVerses, parsed, version);
   if (currentIndex === -1) return null;
 
   if (direction === "prev") {
     const previousInChapter = currentChapterVerses[currentIndex - 1];
     if (previousInChapter) {
       return {
-        reference: formatReference(parsed.book, parsed.chapter, previousInChapter.verse),
+        reference: formatReference(
+          parsed.book,
+          parsed.chapter,
+          previousInChapter.verse,
+        ),
       };
     }
 

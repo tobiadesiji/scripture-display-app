@@ -19,14 +19,8 @@ type Snapshot = {
   state: OutputState | null;
   viewport: OutputViewport | null;
   lastCommand: PresentationCommand | null;
+  presenceTs: number | null;
 };
-
-type Event =
-  | { type: "state"; payload: OutputState }
-  | { type: "viewport"; payload: OutputViewport }
-  | { type: "command"; payload: PresentationCommand }
-  | { type: "snapshot"; payload: Snapshot }
-  | { type: "ping"; payload: { time: number } };
 
 function getScopedChannelName(sessionId: string) {
   return `${OUTPUT_CHANNEL}:${sessionId}`;
@@ -106,11 +100,6 @@ export function readDisplayPresence(sessionId: string): number | null {
   }
 }
 
-export function clearDisplayPresence(sessionId: string) {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(getDisplayPresenceStorageKey(sessionId));
-}
-
 export function subscribeToDisplayPresence(
   sessionId: string,
   callback: (timestamp: number | null) => void,
@@ -147,6 +136,7 @@ async function postPresentationUpdate(
     state?: OutputState;
     viewport?: OutputViewport;
     command?: PresentationCommand;
+    presence?: boolean;
   },
   sessionId: string,
 ) {
@@ -164,7 +154,84 @@ async function postPresentationUpdate(
       }),
       keepalive: true,
     });
+  } catch {
+    // local same-browser sync can still continue
+  }
+}
+
+async function fetchPresentationSnapshot(
+  sessionId: string,
+): Promise<Snapshot | null> {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const url = new URL("/api/presentation/state", window.location.origin);
+    url.searchParams.set("sessionId", sessionId);
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+
+    return (await response.json()) as Snapshot;
+  } catch {
+    return null;
+  }
+}
+
+function subscribeToServerSnapshots(
+  sessionId: string,
+  listener: (snapshot: Snapshot) => void,
+) {
+  if (typeof window === "undefined") return () => {};
+
+  let stopped = false;
+
+  const tick = async () => {
+    if (stopped) return;
+    const snapshot = await fetchPresentationSnapshot(sessionId);
+    if (snapshot && !stopped) {
+      listener(snapshot);
+    }
+  };
+
+  void tick();
+
+  const interval = window.setInterval(() => {
+    void tick();
+  }, 700);
+
+  return () => {
+    stopped = true;
+    window.clearInterval(interval);
+  };
+}
+
+export async function postDisplayPresence(sessionId: string) {
+  if (typeof window === "undefined") return;
+
+  try {
+    await fetch("/api/presentation/state", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sessionId,
+        presence: true,
+      }),
+      keepalive: true,
+    });
   } catch {}
+}
+
+export async function readServerDisplayPresence(
+  sessionId: string,
+): Promise<number | null> {
+  const snapshot = await fetchPresentationSnapshot(sessionId);
+  return snapshot?.presenceTs ?? null;
 }
 
 export function publishOutputState(state: OutputState, sessionId: string) {
@@ -252,32 +319,6 @@ export function publishPresentationCommand(
   void postPresentationUpdate({ command }, sessionId);
 }
 
-function subscribeToServerEvents(
-  sessionId: string,
-  listener: (event: Event) => void,
-) {
-  if (typeof window === "undefined" || typeof EventSource === "undefined") {
-    return () => {};
-  }
-
-  const url = new URL("/api/presentation/events", window.location.origin);
-  url.searchParams.set("sessionId", sessionId);
-
-  const source = new EventSource(url.toString());
-
-  source.onmessage = (event) => {
-    try {
-      listener(JSON.parse(event.data) as Event);
-    } catch {}
-  };
-
-  source.onerror = () => {};
-
-  return () => {
-    source.close();
-  };
-}
-
 export function subscribeToOutputState(
   sessionId: string,
   callback: (state: OutputState) => void,
@@ -286,6 +327,7 @@ export function subscribeToOutputState(
 
   const stateKey = getScopedStateStorageKey(sessionId);
   const channel = createOutputChannel(sessionId);
+  let lastServerState = "";
 
   const onStorage = (event: StorageEvent) => {
     if (event.key !== stateKey || !event.newValue) return;
@@ -301,11 +343,14 @@ export function subscribeToOutputState(
     }
   };
 
-  const stopServerSubscription = subscribeToServerEvents(sessionId, (event) => {
-    if (event.type === "state") callback(event.payload);
-    if (event.type === "snapshot" && event.payload.state) {
-      callback(event.payload.state);
-    }
+  const stopServer = subscribeToServerSnapshots(sessionId, (snapshot) => {
+    if (!snapshot.state) return;
+
+    const serialized = JSON.stringify(snapshot.state);
+    if (serialized === lastServerState) return;
+
+    lastServerState = serialized;
+    callback(snapshot.state);
   });
 
   window.addEventListener("storage", onStorage);
@@ -315,7 +360,7 @@ export function subscribeToOutputState(
     window.removeEventListener("storage", onStorage);
     channel?.removeEventListener("message", onChannel);
     channel?.close();
-    stopServerSubscription();
+    stopServer();
   };
 }
 
@@ -327,6 +372,7 @@ export function subscribeToOutputViewport(
 
   const viewportKey = getScopedViewportStorageKey(sessionId);
   const channel = createOutputChannel(sessionId);
+  let lastServerViewport = "";
 
   const onStorage = (event: StorageEvent) => {
     if (event.key !== viewportKey || !event.newValue) return;
@@ -342,11 +388,14 @@ export function subscribeToOutputViewport(
     }
   };
 
-  const stopServerSubscription = subscribeToServerEvents(sessionId, (event) => {
-    if (event.type === "viewport") callback(event.payload);
-    if (event.type === "snapshot" && event.payload.viewport) {
-      callback(event.payload.viewport);
-    }
+  const stopServer = subscribeToServerSnapshots(sessionId, (snapshot) => {
+    if (!snapshot.viewport) return;
+
+    const serialized = JSON.stringify(snapshot.viewport);
+    if (serialized === lastServerViewport) return;
+
+    lastServerViewport = serialized;
+    callback(snapshot.viewport);
   });
 
   window.addEventListener("storage", onStorage);
@@ -356,7 +405,7 @@ export function subscribeToOutputViewport(
     window.removeEventListener("storage", onStorage);
     channel?.removeEventListener("message", onChannel);
     channel?.close();
-    stopServerSubscription();
+    stopServer();
   };
 }
 
@@ -367,6 +416,7 @@ export function subscribeToPresentationCommands(
   if (typeof window === "undefined") return () => {};
 
   const channel = createOutputChannel(sessionId);
+  let lastCommandId = "";
 
   const onChannel = (event: MessageEvent) => {
     if (event.data?.type === "command") {
@@ -374,11 +424,12 @@ export function subscribeToPresentationCommands(
     }
   };
 
-  const stopServerSubscription = subscribeToServerEvents(sessionId, (event) => {
-    if (event.type === "command") callback(event.payload);
-    if (event.type === "snapshot" && event.payload.lastCommand) {
-      callback(event.payload.lastCommand);
-    }
+  const stopServer = subscribeToServerSnapshots(sessionId, (snapshot) => {
+    if (!snapshot.lastCommand) return;
+    if (snapshot.lastCommand.id === lastCommandId) return;
+
+    lastCommandId = snapshot.lastCommand.id;
+    callback(snapshot.lastCommand);
   });
 
   channel?.addEventListener("message", onChannel);
@@ -386,6 +437,6 @@ export function subscribeToPresentationCommands(
   return () => {
     channel?.removeEventListener("message", onChannel);
     channel?.close();
-    stopServerSubscription();
+    stopServer();
   };
 }

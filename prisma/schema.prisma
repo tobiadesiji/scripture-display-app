@@ -7,17 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum PresentationSessionStatus {
-  DRAFT
-  LIVE
-  ENDED
-}
-
-enum DisplayLinkMode {
-  DISPLAY
-  REMOTE
-}
-
 model User {
   id            String   @id
   name          String
@@ -28,9 +17,11 @@ model User {
   updatedAt     DateTime
   role          String?  @default("user")
 
-  sessions             Session[]
-  accounts             Account[]
-  presentationSessions PresentationSession[]
+  sessions         Session[]
+  accounts         Account[]
+  preferences      UserPreference?
+  referenceHistory ReferenceHistory[]
+  bookmarks        Bookmark[]
 }
 
 model Session {
@@ -73,33 +64,42 @@ model Verification {
   updatedAt  DateTime
 }
 
-model PresentationSession {
-  id               String                    @id @default(cuid())
-  ownerUserId      String
-  title            String?
-  status           PresentationSessionStatus @default(DRAFT)
-  currentReference String?
-  currentVersion   String?
-  settingsJson     Json?
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
+model UserPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  preferredVersion  String?
+  themeSettingsJson Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  owner        User          @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-  displayLinks DisplayLink[]
-
-  @@index([ownerUserId, updatedAt])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model DisplayLink {
-  id                    String          @id @default(cuid())
-  presentationSessionId String
-  tokenHash             String          @unique
-  mode                  DisplayLinkMode @default(DISPLAY)
-  expiresAt             DateTime?
-  revokedAt             DateTime?
-  createdAt             DateTime        @default(now())
+model ReferenceHistory {
+  id             String    @id @default(cuid())
+  userId         String
+  sessionKey     String?
+  reference      String
+  version        String?
+  openedAt       DateTime  @default(now())
+  hiddenByUserAt DateTime?
 
-  presentationSession PresentationSession @relation(fields: [presentationSessionId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([presentationSessionId])
+  @@index([userId, openedAt])
+  @@index([userId, hiddenByUserAt, openedAt])
+  @@index([sessionKey, openedAt])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  reference String
+  version   String?
+  label     String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
