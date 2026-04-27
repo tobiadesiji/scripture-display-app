@@ -15,68 +15,77 @@ export default async function DashboardPage() {
     "there";
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white md:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-[0_20px_60px_rgba(2,6,23,0.28)] md:p-8">
-          <p className="text-sm font-medium uppercase tracking-[0.24em] text-blue-300">
-            Dashboard
-          </p>
+    <main className="brand-shell">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <section className="brand-card-strong brand-glow-line overflow-hidden p-6 md:p-8 lg:p-10">
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
+              <p className="brand-kicker">WordFlow Dashboard</p>
+              <h1 className="brand-heading mt-4 text-4xl font-black tracking-tight sm:text-5xl">
+                Welcome back, {firstName}
+              </h1>
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+                Open the controller for scripture projection, launch the display window,
+                or manage admin tools from one branded workspace.
+              </p>
 
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-            Welcome back, {firstName}
-          </h1>
+              <div className="mt-5 inline-flex max-w-full items-center rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm text-slate-300">
+                <span className="truncate">Signed in as {session.user.email}</span>
+              </div>
 
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-            The main user workflow now lives in the Controller. Use this page as a
-            simple access point while the admin area is being expanded.
-          </p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link href="/" className="brand-primary-button">
+                  Open Controller
+                </Link>
+                <Link href="/display" className="brand-secondary-button">
+                  Open Display
+                </Link>
+                <Link href="/admin" className="brand-secondary-button border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
+                  Open Admin
+                </Link>
+              </div>
+            </div>
 
-          <div className="mt-4 inline-flex items-center rounded-full border border-slate-700 bg-slate-950/60 px-4 py-2 text-sm text-slate-300">
-            Signed in as {session.user.email}
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/"
-              className="inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
-            >
-              Open Controller
-            </Link>
-
-            <Link
-              href="/display"
-              className="inline-flex items-center rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-slate-800"
-            >
-              Open Display
-            </Link>
-
-            <Link
-              href="/admin"
-              className="inline-flex items-center rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-300 transition hover:bg-blue-500/15"
-            >
-              Open Admin
-            </Link>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="brand-panel p-5">
+                <p className="text-3xl font-black text-white">Live</p>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Controller and display stay linked by session key.
+                </p>
+              </div>
+              <div className="brand-panel p-5">
+                <p className="text-3xl font-black text-white">QR</p>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Mobile remote can join without interrupting the operator.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-[0_20px_60px_rgba(2,6,23,0.22)]">
-            <h2 className="text-xl font-semibold">Current structure</h2>
-            <div className="mt-4 space-y-3 text-sm text-slate-300">
-              <p>• Login and registration route users directly into the Controller.</p>
-              <p>• History, bookmarks, and display settings are tied to the user account.</p>
-              <p>• Display output still follows the current session-key popup flow.</p>
-            </div>
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="brand-card p-6">
+            <p className="brand-kicker">Controller</p>
+            <h2 className="mt-3 text-xl font-bold text-white">Main workflow</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Search references, preview pages, send scripture, and manage announcements.
+            </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-[0_20px_60px_rgba(2,6,23,0.22)]">
-            <h2 className="text-xl font-semibold">Next admin steps</h2>
-            <div className="mt-4 space-y-3 text-sm text-slate-300">
-              <p>• User management</p>
-              <p>• Password reset workflows</p>
-              <p>• Reference history review</p>
-              <p>• Admin-only reporting tools</p>
-            </div>
+          <div className="brand-card p-6">
+            <p className="brand-kicker">Saved content</p>
+            <h2 className="mt-3 text-xl font-bold text-white">History & bookmarks</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              History, bookmarked references, free-text information, and display settings stay tied to the account.
+            </p>
+          </div>
+
+          <div className="brand-card p-6">
+            <p className="brand-kicker">Admin</p>
+            <h2 className="mt-3 text-xl font-bold text-white">Next expansion</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              User management, password reset workflows, and reporting tools can use the same visual system.
+            </p>
           </div>
         </section>
       </div>

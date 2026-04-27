@@ -13,38 +13,47 @@ export default function ReferenceInput({
 }: Props) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-200">
-        Reference
-      </label>
+      <label className="brand-label">Reference</label>
 
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            onSubmit();
-          }
-        }}
-        className={[
-          "w-full rounded-xl border bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-500",
-          error
-            ? "border-red-500 focus:border-red-400"
-            : "border-slate-700 focus:border-slate-500",
-        ].join(" ")}
-        placeholder="e.g. John 3:16, Gen 1 1, 1Cor13:4, Psalm 23"
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? "reference-input-error" : undefined}
-      />
+      <div className="relative">
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              onSubmit();
+            }
+          }}
+          className={[
+            "brand-input pr-20 text-base font-semibold sm:text-lg",
+            error
+              ? "border-red-400/70 focus:border-red-300 focus:ring-red-400/10"
+              : "",
+          ].join(" ")}
+          placeholder="John 3:16, Psalm 23, Gen 1:1"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? "reference-input-error" : undefined}
+        />
+        <button
+          type="button"
+          onClick={onSubmit}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-200 transition hover:bg-white/15"
+        >
+          Go
+        </button>
+      </div>
 
       {error ? (
-        <p id="reference-input-error" className="mt-2 text-sm text-red-400">
+        <div
+          id="reference-input-error"
+          className="mt-3 rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+        >
           {error}
-        </p>
+        </div>
       ) : (
-        <p className="mt-2 text-xs text-slate-500">
-          You can use spaces, commas, or colons. Example: John 3 16, John 3:16,
-          Gen 1,1
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          Accepts spaces, commas, or colons. Try John 3 16, John 3:16, Gen 1,1.
         </p>
       )}
     </div>

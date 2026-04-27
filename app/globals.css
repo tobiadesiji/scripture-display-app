@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --brand-bg: #020617;
+  --brand-panel: rgba(15, 23, 42, 0.72);
+  --brand-panel-strong: rgba(15, 23, 42, 0.9);
+  --brand-line: rgba(148, 163, 184, 0.18);
+  --brand-line-strong: rgba(148, 163, 184, 0.3);
+  --brand-text: #f8fafc;
+  --brand-muted: #94a3b8;
+  --brand-emerald: #34d399;
+  --brand-cyan: #38bdf8;
+  --brand-violet: #a78bfa;
+}
+
 html,
 body {
   margin: 0;
@@ -9,10 +22,20 @@ body {
   min-height: 100%;
 }
 
+html {
+  background: var(--brand-bg);
+}
+
 body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(52, 211, 153, 0.14), transparent 30rem),
+    radial-gradient(circle at 88% 8%, rgba(56, 189, 248, 0.16), transparent 34rem),
+    radial-gradient(circle at 50% 95%, rgba(167, 139, 250, 0.11), transparent 34rem),
+    linear-gradient(135deg, #020617 0%, #08111f 44%, #020617 100%);
+  color: var(--brand-text);
   font-family: Arial, Helvetica, sans-serif;
-  background: #020617;
-  color: white;
 }
 
 * {
@@ -21,6 +44,348 @@ body {
 
 input,
 select,
+textarea,
 button {
   font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(52, 211, 153, 0.35);
+  color: #ffffff;
+}
+
+/* ---------- Brand layout ---------- */
+
+.brand-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 1.5rem 1rem;
+  color: #ffffff;
+}
+
+@media (min-width: 640px) {
+  .brand-shell {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .brand-shell {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+.brand-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(52, 211, 153, 0.18), transparent 24rem),
+    radial-gradient(circle at 88% 12%, rgba(56, 189, 248, 0.18), transparent 26rem),
+    radial-gradient(circle at 52% 105%, rgba(99, 102, 241, 0.15), transparent 28rem),
+    linear-gradient(135deg, #020617 0%, #07111f 50%, #020617 100%);
+}
+
+.brand-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 72%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 72%);
+}
+
+/* ---------- Brand surfaces ---------- */
+
+.brand-card {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(2, 6, 23, 0.55);
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.45);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.brand-card-strong {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(2, 6, 23, 0.75);
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.brand-panel {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.brand-surface {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(2, 6, 23, 0.45);
+}
+
+/* ---------- Forms ---------- */
+
+.brand-input,
+.brand-select,
+.brand-textarea {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(2, 6, 23, 0.65);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #ffffff;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.brand-input::placeholder,
+.brand-textarea::placeholder {
+  color: #64748b;
+}
+
+.brand-input:focus,
+.brand-select:focus,
+.brand-textarea:focus {
+  border-color: rgba(110, 231, 183, 0.7);
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.1);
+}
+
+.brand-select {
+  height: 3rem;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.brand-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.brand-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+/* ---------- Text helpers ---------- */
+
+.brand-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #6ee7b7;
+}
+
+.brand-heading {
+  background: linear-gradient(to right, #ffffff, #f1f5f9, #94a3b8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.brand-muted {
+  color: #94a3b8;
+}
+
+/* ---------- Pills ---------- */
+
+.brand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+  padding: 0.25rem 0.75rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+
+.brand-pill-connected {
+  border-color: rgba(52, 211, 153, 0.25);
+  background: rgba(52, 211, 153, 0.1);
+  color: #a7f3d0;
+}
+
+.brand-pill-disconnected {
+  border-color: rgba(100, 116, 139, 0.2);
+  background: rgba(100, 116, 139, 0.1);
+  color: #94a3b8;
+}
+
+/* ---------- Buttons ---------- */
+
+.brand-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(110, 231, 183, 0.3);
+  background: linear-gradient(to right, #6ee7b7, #67e8f9);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #020617;
+  box-shadow: 0 18px 48px rgba(16, 185, 129, 0.24);
+  transition:
+    filter 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.brand-primary-button:hover {
+  filter: brightness(1.1);
+}
+
+.brand-primary-button:focus {
+  outline: none;
+  box-shadow:
+    0 18px 48px rgba(16, 185, 129, 0.24),
+    0 0 0 4px rgba(110, 231, 183, 0.2);
+}
+
+.brand-primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.brand-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #ffffff;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.brand-secondary-button:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.085);
+}
+
+.brand-secondary-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(103, 232, 249, 0.1);
+}
+
+.brand-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.brand-danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  background: rgba(239, 68, 68, 0.1);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fee2e2;
+  transition:
+    background-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.brand-danger-button:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.brand-danger-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.1);
+}
+
+.brand-danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ---------- Scrollbar ---------- */
+
+.brand-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.brand-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.brand-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.35);
+}
+
+/* ---------- Glow border ---------- */
+
+.brand-glow-line {
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-glow-line::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(52, 211, 153, 0.22),
+    transparent 30%,
+    rgba(56, 189, 248, 0.2)
+  );
+  mask:
+    linear-gradient(#000, #000) content-box,
+    linear-gradient(#000, #000);
+  -webkit-mask:
+    linear-gradient(#000, #000) content-box,
+    linear-gradient(#000, #000);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
 }

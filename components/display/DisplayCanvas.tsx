@@ -54,6 +54,50 @@ function getTextStroke(outline: ScriptureTextOutline) {
   }
 }
 
+function ExpandIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 3H3v5" />
+      <path d="M21 8V3h-5" />
+      <path d="M3 16v5h5" />
+      <path d="M16 21h5v-5" />
+      <path d="M3 3l7 7" />
+      <path d="M21 3l-7 7" />
+      <path d="M3 21l7-7" />
+      <path d="M21 21l-7-7" />
+    </svg>
+  );
+}
+
+function CollapseIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M10 3v7H3" />
+      <path d="M14 3v7h7" />
+      <path d="M10 21v-7H3" />
+      <path d="M14 21v-7h7" />
+    </svg>
+  );
+}
+
 export default function DisplayCanvas({
   state,
   isFullscreen,
@@ -61,17 +105,29 @@ export default function DisplayCanvas({
 }: Props) {
   if (!state) {
     return (
-      <div className="relative h-screen w-screen overflow-hidden bg-black text-white">
+      <div className="brand-shell relative flex h-screen w-screen items-center justify-center overflow-hidden text-white">
         <button
           type="button"
           onClick={onToggleFullscreen}
-          className="absolute left-4 top-4 z-20 rounded-full border border-white/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] opacity-85 transition hover:opacity-100"
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          className="absolute left-5 top-5 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/[0.055] text-slate-200 backdrop-blur transition hover:bg-white/10 hover:text-white"
         >
-          {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+          {isFullscreen ? <CollapseIcon /> : <ExpandIcon />}
         </button>
 
-        <div className="flex h-full items-center justify-center px-6 text-center">
-          <p className="text-lg text-white/70">Waiting for presentation…</p>
+        <div className="brand-card-strong brand-glow-line max-w-2xl px-8 py-10 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-emerald-300/25 bg-emerald-300/10 text-3xl font-black text-emerald-200">
+            W
+          </div>
+          <p className="brand-kicker mt-6">WordFlow Display</p>
+          <h1 className="brand-heading mt-4 text-4xl font-black tracking-tight">
+            Waiting for presentation…
+          </h1>
+          <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-slate-400">
+            Open the controller, choose a scripture or announcement, then send it
+            live to this display.
+          </p>
         </div>
       </div>
     );
@@ -84,8 +140,7 @@ export default function DisplayCanvas({
         ? "#ffffff"
         : state.theme.backgroundColor;
 
-  const textColor =
-    state.mode === "white" ? "#000000" : state.theme.textColor;
+  const textColor = state.mode === "white" ? "#000000" : state.theme.textColor;
 
   const chipStyle = {
     borderColor: textColor,
@@ -106,10 +161,12 @@ export default function DisplayCanvas({
     <button
       type="button"
       onClick={onToggleFullscreen}
-      className="absolute left-4 top-4 z-20 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] opacity-85 transition hover:opacity-100"
+      aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      className="absolute left-5 top-5 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border opacity-80 backdrop-blur transition hover:opacity-100"
       style={chipStyle}
     >
-      {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+      {isFullscreen ? <CollapseIcon /> : <ExpandIcon />}
     </button>
   );
 
@@ -132,7 +189,7 @@ export default function DisplayCanvas({
           >
             {state.title ? (
               <p
-                className="mb-6 text-[0.42em] font-bold uppercase tracking-[0.24em] opacity-80"
+                className="mb-6 text-[0.42em] font-black uppercase tracking-[0.24em] opacity-80"
                 style={{ fontSize: `${state.theme.fontSize}px` }}
               >
                 {state.title}
@@ -140,7 +197,7 @@ export default function DisplayCanvas({
             ) : null}
 
             <div
-              className="whitespace-pre-wrap font-bold"
+              className="whitespace-pre-wrap font-black"
               style={{ fontSize: `${state.theme.fontSize}px` }}
             >
               {state.content}
@@ -175,13 +232,9 @@ export default function DisplayCanvas({
   );
 
   const shouldCenterContent =
-    currentPage.length <= 1 &&
-    totalCharacters <= 220 &&
-    longestVerseLength <= 180;
+    currentPage.length <= 1 && totalCharacters <= 220 && longestVerseLength <= 180;
 
-  const contentAlignmentClass = shouldCenterContent
-    ? "items-center"
-    : "items-start";
+  const contentAlignmentClass = shouldCenterContent ? "items-center" : "items-start";
 
   return (
     <div
@@ -194,7 +247,7 @@ export default function DisplayCanvas({
         <div className="mx-auto grid h-full max-w-6xl grid-rows-[auto_1fr_auto] gap-6">
           <div className="flex justify-end">
             <div
-              className="rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] opacity-85"
+              className="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] opacity-85 backdrop-blur"
               style={chipStyle}
             >
               {state.bundle.translation}
@@ -217,9 +270,9 @@ export default function DisplayCanvas({
                   {currentPage.map((verse, index) => (
                     <p
                       key={`${verse.chapter}-${verse.verse}-${verse.label ?? ""}-${index}`}
-                      className="font-bold"
+                      className="font-black"
                     >
-                      <sup className="mr-2 text-[0.55em] font-bold opacity-80">
+                      <sup className="mr-2 text-[0.55em] font-black opacity-80">
                         {verse.label ?? verse.verse}
                       </sup>
                       {verse.text}
@@ -233,7 +286,7 @@ export default function DisplayCanvas({
           <div className="relative">
             {state.theme.showReference ? (
               <p
-                className="absolute bottom-0 left-0 text-[0.85em] uppercase tracking-[0.2em] opacity-75"
+                className="absolute bottom-0 left-0 text-[0.85em] font-bold uppercase tracking-[0.2em] opacity-75"
                 style={textStyle}
               >
                 {state.bundle.reference} · {state.bundle.translation} · Page{" "}

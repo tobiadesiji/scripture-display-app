@@ -51,10 +51,11 @@ const DEFAULT_THEME: ThemeSettings = {
 const DEFAULT_VIEWPORT = { width: 1400, height: 900 };
 const CONTROLLER_SESSION_STORAGE_KEY = "scripture-controller-session";
 const CONTROL_THEME_STORAGE_KEY = "scripture-control-theme";
+const FREE_TEXT_BOOKMARK_PREFIX = "INFO_BOOKMARK:";
 
-const LIVE_BUTTON_TAILWIND = "text-white shadow-lg";
+const LIVE_BUTTON_TAILWIND = "border-emerald-300/30 bg-emerald-400 text-slate-950 shadow-[0_18px_48px_rgba(16,185,129,0.28)]";
 const NEXT_GLOW_CLASSES =
-  "ring-2 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.4)] animate-pulse";
+  "ring-2 ring-cyan-300/40 shadow-[0_0_18px_rgba(56,189,248,0.28)]";
 
 type ScriptureApiResponse = {
   ok: boolean;
@@ -80,11 +81,17 @@ type BookmarkItem = {
   createdAt: string;
 };
 
+type FreeTextBookmarkPayload = {
+  title: string;
+  content: string;
+};
+
 type ControlClientProps = {
   userId?: string;
   userEmail?: string;
   userName?: string;
   isAdmin?: boolean;
+  remoteOnly?: boolean;
   initialPreferredVersion?: BibleVersion;
   initialTheme?: ThemeSettings;
   initialHistory?: HistoryItem[];
@@ -595,10 +602,54 @@ function formatDateTime(value: string) {
   }
 }
 
+function buildFreeTextBookmarkReference(
+  title: string,
+  content: string,
+): string {
+  return FREE_TEXT_BOOKMARK_PREFIX + JSON.stringify({
+    title: title.trim(),
+    content: content.trim(),
+  });
+}
+
+function readFreeTextBookmarkReference(
+  reference: string,
+): FreeTextBookmarkPayload | null {
+  if (reference.startsWith(FREE_TEXT_BOOKMARK_PREFIX)) {
+    try {
+      const parsed = JSON.parse(
+        reference.slice(FREE_TEXT_BOOKMARK_PREFIX.length),
+      ) as Partial<FreeTextBookmarkPayload>;
+
+      return {
+        title: typeof parsed.title === "string" ? parsed.title : "",
+        content: typeof parsed.content === "string" ? parsed.content : "",
+      };
+    } catch {
+      return {
+        title: "Announcement",
+        content: "",
+      };
+    }
+  }
+
+  // Backwards compatibility for older info bookmarks already saved as "INFO: ...".
+  // Those older bookmarks did not store the message body, so only the title can be restored.
+  if (reference.startsWith("INFO:")) {
+    return {
+      title: reference.replace(/^INFO:\\s*/, "").trim() || "Announcement",
+      content: "",
+    };
+  }
+
+  return null;
+}
+
 export default function ControlClient({
   userEmail,
   userName,
   isAdmin = false,
+  remoteOnly = false,
   initialPreferredVersion = "KJV",
   initialTheme,
   initialHistory = [],
@@ -653,22 +704,23 @@ export default function ControlClient({
   const lastThemeSyncKeyRef = useRef("");
 
   const isLightControlTheme = controlTheme === "light";
+  const canUseAccountFeatures = Boolean(userEmail) && !remoteOnly;
 
   const shellClass = isLightControlTheme
     ? "min-h-screen bg-slate-100 px-4 py-5 text-slate-900 sm:px-6 md:px-8"
-    : "min-h-screen bg-slate-950 px-4 py-5 text-white sm:px-6 md:px-8";
+    : "brand-shell";
 
   const cardClass = isLightControlTheme
-    ? "rounded-2xl border border-slate-200 bg-white"
-    : "rounded-2xl border border-slate-800 bg-slate-900";
+    ? "rounded-3xl border border-slate-200 bg-white shadow-sm"
+    : "brand-card";
 
   const sidePanelClass = isLightControlTheme
-    ? "rounded-2xl border border-slate-200 bg-white p-4"
-    : "rounded-2xl border border-slate-800 bg-slate-900 p-4";
+    ? "rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"
+    : "brand-card p-4";
 
   const titleTextClass = isLightControlTheme
-    ? "text-base font-semibold text-slate-900"
-    : "text-base font-semibold text-white";
+    ? "text-base font-bold text-slate-900"
+    : "text-base font-bold text-white";
 
   const subtitleTextClass = isLightControlTheme
     ? "mt-1 text-xs text-slate-500"
@@ -680,23 +732,23 @@ export default function ControlClient({
 
   const surfaceMutedClass = isLightControlTheme
     ? "bg-slate-50 border-slate-200"
-    : "bg-slate-950/60 border-slate-800";
+    : "bg-white/[0.035] border-white/10";
 
   const inputClass = isLightControlTheme
-    ? "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500"
-    : "w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-500";
+    ? "w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+    : "brand-input";
 
   const smallActionClass = isLightControlTheme
-    ? "rounded-lg border border-slate-300 px-2.5 py-1 text-[11px] text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
-    : "rounded-lg border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 transition hover:border-slate-600 hover:bg-slate-800";
+    ? "rounded-xl border border-slate-300 px-3 py-1.5 text-[11px] font-bold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+    : "rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08]";
 
   const compactActionButtonClass = isLightControlTheme
     ? "inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 shadow-sm transition hover:bg-slate-50"
-    : "inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-slate-200 transition hover:bg-slate-800";
+    : "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1.5 text-slate-200 transition hover:bg-white/[0.085]";
 
   const compactActionGroupClass = isLightControlTheme
     ? "flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm"
-    : "flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-2 py-1";
+    : "flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/55 px-2 py-1 backdrop-blur-xl";
 
   const firstName = useMemo(() => {
     if (userName?.trim()) return userName.trim().split(/\s+/)[0];
@@ -768,6 +820,8 @@ export default function ControlClient({
   );
 
   const refreshHistory = useCallback(async () => {
+    if (!canUseAccountFeatures) return;
+
     try {
       const response = await fetch("/api/user/history?limit=12", {
         cache: "no-store",
@@ -789,9 +843,11 @@ export default function ControlClient({
     } catch (historyError) {
       console.error("Failed to refresh history", historyError);
     }
-  }, []);
+  }, [canUseAccountFeatures]);
 
   const refreshBookmarks = useCallback(async () => {
+    if (!canUseAccountFeatures) return;
+
     try {
       const response = await fetch("/api/user/bookmarks", {
         cache: "no-store",
@@ -813,10 +869,12 @@ export default function ControlClient({
     } catch (bookmarkError) {
       console.error("Failed to refresh bookmarks", bookmarkError);
     }
-  }, []);
+  }, [canUseAccountFeatures]);
 
   const persistReferenceHistory = useCallback(
     async (reference: string, nextVersion: BibleVersion) => {
+      if (!canUseAccountFeatures) return;
+
       try {
         await fetch("/api/user/history", {
           method: "POST",
@@ -834,11 +892,13 @@ export default function ControlClient({
         console.error("Failed to persist reference history", historyError);
       }
     },
-    [refreshHistory, sessionId],
+    [canUseAccountFeatures, refreshHistory, sessionId],
   );
 
   const savePreferences = useCallback(
     async (nextVersion: BibleVersion, nextTheme: ThemeSettings) => {
+      if (!canUseAccountFeatures) return;
+
       try {
         await fetch("/api/user/preferences", {
           method: "POST",
@@ -854,11 +914,13 @@ export default function ControlClient({
         console.error("Failed to save preferences", preferenceError);
       }
     },
-    [],
+    [canUseAccountFeatures],
   );
 
   const schedulePreferenceSave = useCallback(
     (nextVersion: BibleVersion, nextTheme: ThemeSettings) => {
+      if (!canUseAccountFeatures) return;
+
       if (preferenceSaveTimeoutRef.current) {
         clearTimeout(preferenceSaveTimeoutRef.current);
       }
@@ -998,9 +1060,10 @@ export default function ControlClient({
     if (!freeTextContent.trim()) return;
 
     try {
-      const reference = freeTextTitle.trim()
-        ? `INFO: ${freeTextTitle.trim()}`
-        : "INFO: Announcement";
+      const reference = buildFreeTextBookmarkReference(
+        freeTextTitle,
+        freeTextContent,
+      );
 
       await fetch("/api/user/bookmarks", {
         method: "POST",
@@ -1009,7 +1072,7 @@ export default function ControlClient({
         },
         body: JSON.stringify({
           reference,
-          version: "KJV",
+          version: "INFO",
           label:
             freeTextBookmarkLabel.trim() ||
             freeTextTitle.trim() ||
@@ -1023,6 +1086,47 @@ export default function ControlClient({
       console.error("Failed to bookmark free text", bookmarkError);
     }
   }, [freeTextContent, freeTextTitle, freeTextBookmarkLabel, refreshBookmarks]);
+
+  const handleSelectBookmark = useCallback(
+    (item: BookmarkItem) => {
+      const infoBookmark = readFreeTextBookmarkReference(item.reference);
+
+      if (infoBookmark) {
+        const title = infoBookmark.title || item.label || "Announcement";
+        const content = infoBookmark.content;
+
+        setFreeTextTitle(title);
+        setFreeTextContent(content);
+        setFreeTextBookmarkLabel(item.label || title);
+        setError("");
+
+        if (sessionId && content.trim()) {
+          publishOutputState(
+            {
+              mode: "text",
+              title: title.trim() || undefined,
+              content: content.trim(),
+              theme,
+            },
+            sessionId,
+          );
+          setHasLiveOutput(true);
+          setIsSessionLive(true);
+          setLiveBundleKey("");
+        }
+
+        return;
+      }
+
+      setReferenceInput(item.reference);
+      void loadPassage(item.reference, {
+        autoSend: true,
+        overrideVersion: (item.version || version) as BibleVersion,
+        saveHistory: true,
+      });
+    },
+    [loadPassage, sessionId, theme, version],
+  );
 
   const navigate = useCallback(
     async (direction: "prev" | "next") => {
@@ -1474,8 +1578,9 @@ export default function ControlClient({
   }, [theme, sessionId, isSessionLive, freeTextTitle, freeTextContent, bundle]);
 
   useEffect(() => {
+    if (!canUseAccountFeatures) return;
     schedulePreferenceSave(version, theme);
-  }, [schedulePreferenceSave, theme, version]);
+  }, [canUseAccountFeatures, schedulePreferenceSave, theme, version]);
 
   useEffect(() => {
     return () => {
@@ -1486,8 +1591,9 @@ export default function ControlClient({
   }, []);
 
   const remoteUrl = useMemo(() => {
-    const base = typeof window !== "undefined" ? window.location.origin : "";
-    const url = new URL("/", base);
+    if (typeof window === "undefined") return "";
+
+    const url = new URL("/remote", window.location.origin);
     if (sessionId) {
       url.searchParams.set("session", sessionId);
     }
@@ -1500,30 +1606,166 @@ export default function ControlClient({
       ? "Live content active."
       : "Ready.";
 
+  if (remoteOnly) {
+    return (
+      <main className="brand-shell">
+        <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-xl flex-col justify-center">
+          <section className="brand-card-strong brand-glow-line p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="brand-kicker">WordFlow Remote</p>
+                <h1 className="brand-heading mt-2 text-3xl font-black tracking-tight">
+                  Mobile Control
+                </h1>
+                <p className="mt-3 text-sm leading-6 text-slate-400">
+                  Control the live scripture display from this device.
+                </p>
+              </div>
+              <span
+                className={`brand-pill shrink-0 ${
+                  isDisplayConnected
+                    ? "brand-pill-connected"
+                    : "brand-pill-disconnected"
+                }`}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    isDisplayConnected ? "bg-emerald-300" : "bg-slate-500"
+                  }`}
+                />
+                {isDisplayConnected ? "Online" : "Offline"}
+              </span>
+            </div>
+
+            <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">
+                Current
+              </p>
+              <p className="mt-2 text-xl font-black text-white">
+                {bundle?.reference || "No passage loaded"}
+              </p>
+              <p className="mt-1 text-sm text-slate-400">{statusText}</p>
+            </div>
+
+            <div className="mt-5">
+              <label className="brand-label">Bible Version</label>
+              <select
+                value={version}
+                onChange={(e) =>
+                  void loadPassage(activeReference, {
+                    overrideVersion: e.target.value as BibleVersion,
+                    autoSend: hasLiveOutput,
+                    saveHistory: false,
+                  })
+                }
+                className="brand-select"
+              >
+                {["KJV", "NLT", "NIV", "AMP", "TPT"].map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-5">
+              <ReferenceInput
+                value={referenceInput}
+                error={error || null}
+                onChange={(v) => {
+                  setReferenceInput(v);
+                  setError("");
+                }}
+                onSubmit={handleSend}
+              />
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <Button
+                controlTheme={controlTheme}
+                onClick={() => void navigate("prev")}
+                disabled={!bundle || isLoading || isNavigating}
+                className="min-h-20 text-lg"
+              >
+                Prev
+              </Button>
+              <Button
+                controlTheme={controlTheme}
+                variant="primary"
+                onClick={() => void navigate("next")}
+                disabled={!bundle || isLoading || isNavigating}
+                className="min-h-20 text-lg"
+              >
+                Next
+              </Button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <Button
+                controlTheme={controlTheme}
+                onClick={handleLoadOnly}
+                disabled={isLoading}
+              >
+                Load
+              </Button>
+              <Button
+                controlTheme={controlTheme}
+                variant="primary"
+                onClick={handleSend}
+                disabled={isLoading || !sessionId}
+              >
+                Send Live
+              </Button>
+              <Button
+                controlTheme={controlTheme}
+                onClick={clearScreen}
+                disabled={!sessionId}
+              >
+                Clear
+              </Button>
+              <Button
+                controlTheme={controlTheme}
+                onClick={() =>
+                  sessionId && publishOutputState({ mode: "black", theme }, sessionId)
+                }
+                disabled={!sessionId}
+              >
+                Black
+              </Button>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className={shellClass}>
       <div className="mx-auto max-w-7xl">
-        <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div>
+            <p className={isLightControlTheme ? "text-xs font-black uppercase tracking-[0.28em] text-emerald-600" : "brand-kicker"}>
+              WordFlow
+            </p>
             <h1
               className={
                 isLightControlTheme
-                  ? "text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
-                  : "text-2xl font-bold tracking-tight text-white sm:text-3xl"
+                  ? "mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl"
+                  : "brand-heading mt-2 text-3xl font-black tracking-tight sm:text-4xl"
               }
             >
-              Scripture Display
+              Scripture Controller
             </h1>
-            <p className={`mt-2 text-sm ${subtleTextClass}`}>
-              Welcome back, {firstName}. Your reference history, bookmarks, and
-              settings are saved to your account.
+            <p className={`mt-3 max-w-2xl text-sm leading-6 ${subtleTextClass}`}>
+              Welcome back, {firstName}. Search scripture, send it live, manage bookmarks,
+              and control the display from one polished worship-media workspace.
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <div
                 className={
                   isLightControlTheme
-                    ? "inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1"
-                    : "inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/70 px-3 py-1"
+                    ? "inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm"
+                    : `brand-pill ${isDisplayConnected ? "brand-pill-connected" : "brand-pill-disconnected"}`
                 }
               >
                 <span
@@ -1677,11 +1919,12 @@ export default function ControlClient({
               <div className={`mt-3 text-xs ${subtleTextClass}`}>{statusText}</div>
 
               <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
-                <Button onClick={handleLoadOnly} disabled={isLoading}>
+                <Button controlTheme={controlTheme} onClick={handleLoadOnly} disabled={isLoading}>
                   Load
                 </Button>
 
-                <Button
+                <Button controlTheme={controlTheme}
+                  variant="primary"
                   onClick={handleSend}
                   disabled={isLoading || !sessionId}
                   style={{
@@ -1696,7 +1939,6 @@ export default function ControlClient({
                     {isActivelyLive && (
                       <div className="relative flex h-0 w-0 items-center justify-center">
                         <span className="absolute right-3 flex h-2 w-2 items-center justify-center">
-                          <span className="absolute h-full w-full animate-ping rounded-full bg-white opacity-75" />
                           <span className="h-2 w-2 rounded-full bg-white" />
                         </span>
                       </div>
@@ -1707,27 +1949,27 @@ export default function ControlClient({
                   </div>
                 </Button>
 
-                <Button
+                <Button controlTheme={controlTheme}
                   onClick={() => sessionId && openDisplayWindow(sessionId)}
                   disabled={!sessionId}
                 >
-                  Open Output
+                  Open Display
                 </Button>
 
-                <Button onClick={clearScreen} disabled={!sessionId}>
+                <Button controlTheme={controlTheme} onClick={clearScreen} disabled={!sessionId}>
                   Clear
                 </Button>
               </div>
 
               <div className={`mt-4 rounded-xl border p-3 ${surfaceMutedClass}`}>
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  <Button
+                  <Button controlTheme={controlTheme}
                     onClick={() => void navigate("prev")}
                     disabled={!bundle || isLoading}
                   >
                     Prev
                   </Button>
-                  <Button
+                  <Button controlTheme={controlTheme}
                     onClick={() => void navigate("next")}
                     disabled={!bundle || isLoading}
                     className={hasMoreContent ? NEXT_GLOW_CLASSES : ""}
@@ -1751,7 +1993,7 @@ export default function ControlClient({
                   className={inputClass}
                 />
                 <div className="mt-3">
-                  <Button
+                  <Button controlTheme={controlTheme}
                     onClick={handleBookmarkCurrent}
                     disabled={!activeReference || isSavingBookmark}
                   >
@@ -1777,18 +2019,22 @@ export default function ControlClient({
                     </span>
                   )}
                 </div>
-                <PreviewPanel bundle={bundle} error={error} />
+                <PreviewPanel
+                    bundle={bundle}
+                    error={error}
+                    controlTheme={controlTheme}
+/>
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-2">
-                <Button
+                <Button controlTheme={controlTheme}
                   onClick={clearScreen}
                   disabled={!sessionId}
                   className="text-[10px]"
                 >
                   Clear
                 </Button>
-                <Button
+                <Button controlTheme={controlTheme}
                   onClick={() =>
                     publishOutputState({ mode: "black", theme }, sessionId)
                   }
@@ -1797,7 +2043,7 @@ export default function ControlClient({
                 >
                   Black
                 </Button>
-                <Button
+                <Button controlTheme={controlTheme}
                   onClick={() =>
                     publishOutputState({ mode: "white", theme }, sessionId)
                   }
@@ -1837,7 +2083,11 @@ export default function ControlClient({
                   isActivelyLive ? "ring-2 ring-emerald-500/20" : ""
                 }`}
               >
-                <PreviewPanel bundle={bundle} error={error} />
+                <PreviewPanel
+                  bundle={bundle}
+                  error={error}
+                  controlTheme={controlTheme}
+                  />
               </div>
             </div>
 
@@ -1873,14 +2123,15 @@ export default function ControlClient({
               />
 
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button
+                <Button controlTheme={controlTheme}
+                  variant="primary"
                   onClick={handleSendFreeText}
                   disabled={!sessionId || !freeTextContent.trim()}
                 >
                   Send Info
                 </Button>
 
-                <Button
+                <Button controlTheme={controlTheme}
                   onClick={() => void handleBookmarkFreeText()}
                   disabled={!freeTextContent.trim()}
                 >
@@ -1893,7 +2144,7 @@ export default function ControlClient({
           <div className="space-y-4">
             <SidePanel
               title="Recent History"
-              subtitle="Only looked-up references are shown here."
+              subtitle=""
               action={
                 <button
                   type="button"
@@ -1979,7 +2230,7 @@ export default function ControlClient({
 
             <SidePanel
               title="Bookmarks"
-              subtitle="Saved references for quick return. Max 10 shown."
+              subtitle=""
               className={sidePanelClass}
               titleClassName={titleTextClass}
               subtitleClassName={subtitleTextClass}
@@ -1999,15 +2250,7 @@ export default function ControlClient({
                     >
                       <button
                         type="button"
-                        onClick={() => {
-                          setReferenceInput(item.reference);
-                          void loadPassage(item.reference, {
-                            autoSend: true,
-                            overrideVersion: (item.version ||
-                              version) as BibleVersion,
-                            saveHistory: true,
-                          });
-                        }}
+                        onClick={() => handleSelectBookmark(item)}
                         className="w-full text-left"
                       >
                         <p
@@ -2020,12 +2263,21 @@ export default function ControlClient({
                           {item.label || item.reference}
                         </p>
                         <p className="mt-1 text-xs text-blue-400">
-                          {item.label
-                            ? item.reference
-                            : item.version || "Unknown version"}
-                          {item.label && item.version
-                            ? ` • ${item.version}`
-                            : ""}
+                          {(() => {
+                            const infoBookmark = readFreeTextBookmarkReference(
+                              item.reference,
+                            );
+
+                            if (infoBookmark) {
+                              return infoBookmark.content
+                                ? "Info / Announcement"
+                                : "Info / Announcement • older bookmark, content not stored";
+                            }
+
+                            return item.label
+                              ? item.reference + (item.version ? " • " + item.version : "")
+                              : item.version || "Unknown version";
+                          })()}
                         </p>
                       </button>
 

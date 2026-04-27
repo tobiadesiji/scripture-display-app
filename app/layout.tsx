@@ -2,8 +2,9 @@ import "./globals.css";
 import type { ReactNode } from "react";
 
 export const metadata = {
-  title: "Scripture Web App",
-  description: "Browser-based scripture projection app"
+  title: "WordFlow | WorshipFlow",
+  description:
+    "A scripture display and remote Bible presentation app for churches and worship teams.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
