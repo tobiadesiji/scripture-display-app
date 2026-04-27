@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/auth-session";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 
 type RouteProps = {
   params: Promise<{ id: string }>;
@@ -10,7 +10,7 @@ type RouteProps = {
 export async function PATCH(request: NextRequest, { params }: RouteProps) {
   const session = await getServerSession();
 
-  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+  if (!session?.user?.email || !await isAdminUser(session.user.email)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest, { params }: RouteProps) {
 export async function DELETE(_request: NextRequest, { params }: RouteProps) {
   const session = await getServerSession();
 
-  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+  if (!session?.user?.email || !await isAdminUser(session.user.email)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

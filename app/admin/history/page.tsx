@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth-session";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 
 export default async function AdminHistoryPage() {
   const session = await getServerSession();
@@ -9,7 +9,7 @@ export default async function AdminHistoryPage() {
     redirect("/login");
   }
 
-  if (!isAdminEmail(session.user.email)) {
+  if (!await isAdminUser(session.user.email)) {
     redirect("/");
   }
 

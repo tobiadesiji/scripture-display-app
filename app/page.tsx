@@ -4,7 +4,7 @@ import { getServerSession } from "@/lib/auth-session";
 import { getUserPreferences } from "@/lib/user-preferences";
 import { getRecentReferenceHistory } from "@/lib/reference-history";
 import { getUserBookmarks } from "@/lib/bookmarks";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 import type { BibleVersion, ThemeSettings } from "@/types/scripture";
 
 export default async function HomePage() {
@@ -31,7 +31,7 @@ export default async function HomePage() {
       userId={session.user.id}
       userEmail={session.user.email || ""}
       userName={session.user.name || ""}
-      isAdmin={isAdminEmail(session.user.email)}
+      isAdmin={await isAdminUser(session.user.email)}
       initialPreferredVersion={preferredVersion}
       initialTheme={savedTheme || undefined}
       initialHistory={history.map((item) => ({

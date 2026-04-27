@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/auth-session";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 import { auth } from "@/lib/auth";
 
 type RouteProps = {
@@ -10,8 +11,23 @@ type RouteProps = {
 export async function POST(request: NextRequest, { params }: RouteProps) {
   const session = await getServerSession();
 
-  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+  if (!session?.user?.email || !await isAdminUser(session.user.email)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const actingAdmin = await prisma.user.findUnique({
+    where: { email: session.user.email.toLowerCase() },
+    select: { id: true, role: true, email: true },
+  });
+
+  if (!actingAdmin || actingAdmin.role !== "admin") {
+    return NextResponse.json(
+      {
+        error:
+          "Your account is not marked as admin in Better Auth yet. Update the admin user's role to admin and try again.",
+      },
+      { status: 403 },
+    );
   }
 
   const { id } = await params;

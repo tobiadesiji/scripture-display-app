@@ -11,6 +11,7 @@ type AdminUserEditorProps = {
     emailVerified: boolean;
     createdAt: string;
     updatedAt: string;
+    role?: string | null;
   };
   adminEmail: string;
 };
@@ -71,18 +72,15 @@ export default function AdminUserEditor({
     setError("");
 
     try {
-      const response = await fetch(
-        `/api/admin/users/${user.id}/reset-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            newPassword,
-          }),
+      const response = await fetch(`/api/admin/users/${user.id}/reset-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          newPassword,
+        }),
+      });
 
       const data = await response.json();
 
@@ -244,6 +242,9 @@ export default function AdminUserEditor({
       <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
         <h2 className="text-xl font-semibold">User Info</h2>
         <div className="mt-4 space-y-2 text-sm text-slate-300">
+          <p>
+            <span className="text-slate-400">Role:</span> {user.role || "user"}
+          </p>
           <p>
             <span className="text-slate-400">Verified:</span>{" "}
             {user.emailVerified ? "Yes" : "No"}

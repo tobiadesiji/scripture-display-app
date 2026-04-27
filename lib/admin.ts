@@ -1,6 +1,12 @@
-export function isAdminEmail(email?: string | null) {
-  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const currentEmail = email?.trim().toLowerCase();
+import { prisma } from "@/lib/prisma";
 
-  return Boolean(adminEmail && currentEmail && adminEmail === currentEmail);
+export async function isAdminUser(email?: string | null) {
+  if (!email) return false;
+
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+    select: { role: true },
+  });
+
+  return user?.role === "admin";
 }

@@ -1,3 +1,4 @@
+
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
@@ -23,6 +24,11 @@ model User {
   preferences      UserPreference?
   referenceHistory ReferenceHistory[]
   bookmarks        Bookmark[]
+  banned           Boolean?           @default(false)
+  banReason        String?
+  banExpires       DateTime?
+
+  @@map("user")
 }
 
 model Session {
@@ -35,7 +41,11 @@ model Session {
   userAgent String?
   userId    String
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
+
+  @@index([userId])
+  @@map("session")
 }
 
 model Account {
@@ -54,6 +64,9 @@ model Account {
   updatedAt             DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
 }
 
 model Verification {
@@ -63,6 +76,9 @@ model Verification {
   expiresAt  DateTime
   createdAt  DateTime
   updatedAt  DateTime
+
+  @@index([identifier])
+  @@map("verification")
 }
 
 model UserPreference {

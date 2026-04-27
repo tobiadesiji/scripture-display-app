@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/auth-session";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 
 export default async function AdminUsersPage() {
   const session = await getServerSession();
@@ -11,7 +11,7 @@ export default async function AdminUsersPage() {
     redirect("/login");
   }
 
-  if (!isAdminEmail(session.user.email)) {
+  if (!await isAdminUser(session.user.email)) {
     redirect("/");
   }
 
